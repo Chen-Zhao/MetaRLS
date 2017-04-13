@@ -10,7 +10,7 @@ gunzip -c All_20151104.dbSNP146.vcf.gz > All_20151104.dbSNP146.vcf &
 
 cd ..
 
-sed -e 's/^23/X/' CHD_AllQC_rsid.bim > CHD_AllQC_rsid.SEXasX.bim
+awk '{if($1==23){$1=="X"}; OFS="\t"; print $0}' CHD_AllQC_rsid.bim > CHD_AllQC_rsid.SEXasX.bim
 java -Xmx4g -jar ${snptracker} \
    --bim-file CHD_AllQC_rsid.SEXasX.bim --by-pos --ref hg19 \
    --out CHD_AllQC_rsid.SEXasX \
@@ -18,5 +18,13 @@ java -Xmx4g -jar ${snptracker} \
 
 awk '$1>0' CHD_AllQC_rsid.SEXasX.result.bim > CHD_AllQC_rsid.SEXas23.result.bim
 /statgen/meiwen/CHD/tools/snpflip/bin/snpflip -b CHD_AllQC_rsid.SEXas23.result.bim -f $dbpath/human_g1k_v37.fasta -o CHD_AllQC_rsid.SEXas23.result.snpflip_output 
+
+awk '$1==0' CHD_AllQC_rsid.SEXasX.result.bim | cut -f 2 > CHD_AllQC_rsid.SEXasX.result.unmapped.list
+
+plink --bfile CHD_AllQC_rsid --exclude CHD_AllQC_rsid.SEXasX.result.unmapped.list --make-bed --out CHD_AllQC_rsid.tmp
+
+cp CHD_AllQC_rsid.SEXas23.result.bim CHD_AllQC_rsid.tmp.bim
+
+plink --bfile CHD_AllQC_rsid.tmp --flip CHD_AllQC_rsid.SEXas23.result.snpflip_output.reverse --make-bed --out CHD_AllQC_rsid.fliped
 
 ```
