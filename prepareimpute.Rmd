@@ -9,11 +9,14 @@ mv All_20151104.vcf.gz All_20151104.dbSNP146.vcf.gz
 gunzip -c All_20151104.dbSNP146.vcf.gz > All_20151104.dbSNP146.vcf &
 
 cd ..
+
+sed -e 's/^23/X/' CHD_AllQC_rsid.bim > CHD_AllQC_rsid.SEXasX.bim
 java -Xmx4g -jar ${snptracker} \
-   --bim-file CHD_AllQC_rsid.bim --by-pos --ref hg19 \
-   --out CHD_AllQC_rsid.dbSNP146.bim \
-   --merge-file ${dbpath}/RsMergeArch.bcp.gz \
-   --coor-file  ${dbpath}/b146_SNPChrPosOnRef_105.bcp.gz \ 
-   --hist-file  ${dbpath}/SNPHistory.bcp.gz 
+   --bim-file CHD_AllQC_rsid.SEXasX.bim --by-pos --ref hg19 \
+   --out CHD_AllQC_rsid.SEXasX \
+   --merge-file ${dbpath}/RsMergeArch.bcp.gz --coor-file ${dbpath}/b146_SNPChrPosOnRef_105.bcp.gz --hist-file ${dbpath}/SNPHistory.bcp.gz 2>&1 > snptrack.log
+
+awk '$1>0' CHD_AllQC_rsid.SEXasX.result.bim > CHD_AllQC_rsid.SEXas23.result.bim
+/statgen/meiwen/CHD/tools/snpflip/bin/snpflip -b CHD_AllQC_rsid.SEXas23.result.bim -f $dbpath/human_g1k_v37.fasta -o CHD_AllQC_rsid.SEXas23.result.snpflip_output 
 
 ```
