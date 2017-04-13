@@ -1,5 +1,19 @@
-# update id
+# update bim SNP id to dbSNP 146
 
 ```{r, eval=FALSE}
+
+dbpath=/statgen/meiwen/CHD/mw/08imputation/download
+snptracker=/statgen/meiwen/CHD/tools/snptracker/snptracker.jar
+cd /statgen/meiwen/CHD/mw/08imputation/download
+mv All_20151104.vcf.gz All_20151104.dbSNP146.vcf.gz
+gunzip -c All_20151104.dbSNP146.vcf.gz > All_20151104.dbSNP146.vcf &
+
+cd ..
+java -Xmx4g -jar ${snptracker} \
+   --bim-file CHD_AllQC_rsid.bim --by-pos --ref hg19 \
+   --out CHD_AllQC_rsid.dbSNP146.bim \
+   --merge-file ${dbpath}/RsMergeArch.bcp.gz \
+   --coor-file  ${dbpath}/b146_SNPChrPosOnRef_105.bcp.gz \ 
+   --hist-file  ${dbpath}/SNPHistory.bcp.gz 
 
 ```
