@@ -16,20 +16,75 @@ java -Xmx4g -jar ${snptracker} \
    --out CHD_AllQC_rsid.SEXasX \
    --merge-file ${dbpath}/RsMergeArch.bcp.gz --coor-file ${dbpath}/b146_SNPChrPosOnRef_105.bcp.gz --hist-file ${dbpath}/SNPHistory.bcp.gz 2>&1 > snptrack.log
 
-awk '$1==0' CHD_AllQC_rsid.SEXasX.result.bim | cut -f 2 | sed -e 's/rs//g' > CHD_AllQC_rsid.SEXasX.result.unmapped.list
+awk '$1==0' CHD_AllQC_rsid.SEXasX.result.bim | cut -f 2 | sed -e 's/rsAX-/AX-/g' > CHD_AllQC_rsid.SEXasX.result.unmapped.list
 plink --bfile CHD_AllQC_rsid --exclude CHD_AllQC_rsid.SEXasX.result.unmapped.list --make-bed --out CHD_AllQC_rsid.tmp
-awk '$1>0' CHD_AllQC_rsid.SEXasX.result.bim > CHD_AllQC_rsid.tmp.bim
-awk '$1>0' CHD_AllQC_rsid.SEXasX.result.bim > CHD_AllQC_rsid.SEXas23.result.bim
+awk '$1!=0' CHD_AllQC_rsid.SEXasX.result.bim > CHD_AllQC_rsid.tmp.bim
+
+/statgen/meiwen/CHD/tools/snpflip/bin/snpflip -b CHD_AllQC_rsid.tmp.bim -f $dbpath/human_g1k_v37.fasta -o CHD_AllQC_rsid.tmp.snpflip_output 
+
+plink --bfile CHD_AllQC_rsid.tmp --flip CHD_AllQC_rsid.tmp.snpflip_output.reverse --make-bed --out CHD_AllQC_rsid.fliped
+awk 'NR>1{OFS="\t"; print $3,$7}' CHD_AllQC_rsid.tmp.snpflip_output.annotated_bim > CHD_AllQC_rsid.fliped.ref.allele
+
+plink --bfile CHD_AllQC_rsid.fliped --a2-allele CHD_AllQC_rsid.fliped.ref.allele 2 1 --make-bed --out CHD_AllQC_rsid.fliped.ref
+grep "Impossible A2" CHD_AllQC_rsid.fliped.ref.log | cut -f 8 -d ' ' | sed -e 's/\.//g' > CHD_AllQC_rsid.fliped.ref.exclude
+plink --bfile CHD_AllQC_rsid.fliped --exclude CHD_AllQC_rsid.fliped.ref.exclude --a2-allele CHD_AllQC_rsid.fliped.ref.allele 2 1 --make-bed --out CHD_AllQC_rsid.fliped.ref.1
+plink --bfile CHD_AllQC_rsid.fliped.ref.1 --keep-allele-order --freq --out CHD_AllQC_rsid.fliped.ref.1
+plink --bfile CHD_AllQC_rsid.fliped --keep-allele-order --freq --out CHD_AllQC_rsid.fliped
+head CHD_AllQC_rsid.fliped.ref.1.frq CHD_AllQC_rsid.fliped.frq
+
+awk 'OFS="\t"{if($1==23){$1="X"}; print $0}' CHD_AllQC_rsid.fliped.ref.1.bim > CHD_AllQC_rsid.fliped.ref.1.bim.X
+mv CHD_AllQC_rsid.fliped.ref.1.bim.X CHD_AllQC_rsid.fliped.ref.1.bim
+
+extractbyquery.pl CHD_AllQC_rsid.fliped.ref.1.bim 2 download/All_20151104.dbSNP146.vcf 3 | awk 'OFS="\t"{print $1,$2,$3,$4,$5}' > CHD_AllQC_rsid.fliped.ref.1.dbSNP146
+cut -f 3 CHD_AllQC_rsid.fliped.ref.1.dbSNP146 > CHD_AllQC_rsid.fliped.ref.1.dbSNP146.snplist
+plink --bfile CHD_AllQC_rsid.fliped.ref.1 --keep-allele-order --extract CHD_AllQC_rsid.fliped.ref.1.dbSNP146.snplist --make-bed --out CHD_AllQC_rsid.fliped.ref.2
+
+paste CHD_AllQC_rsid.fliped.ref.1.dbSNP146 CHD_AllQC_rsid.fliped.ref.2.bim | awk '$3==$7{OFS="\t";
+      if(($10=="-" && (length($4)==2 || length($5)==2) ) || ($11=="-" && (length($4)==2 || length($5)==2))){$9=$2;$10=$4;$11=$5;} 
+      if(length($10)==1 || length($11)==1){ print $0; } }' | cut -f 6-11 | grep -P -v ",|-"  > CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim
+
+wc -l  CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim CHD_AllQC_rsid.fliped.ref.2.bim
+cut -f 2 CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim > CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.snplist
+
+plink --bfile CHD_AllQC_rsid.fliped.ref.2 --keep-allele-order --extract CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.snplist --make-bed --out CHD_AllQC_rsid.fliped.ref.3
+wc -l CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim  CHD_AllQC_rsid.fliped.ref.3.bim
+cp CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim  CHD_AllQC_rsid.fliped.ref.3.bim
+
+plink --bfile CHD_AllQC_rsid.fliped.ref.3 --keep-allele-order --recode vcf-iid  --out CHD_AllQC_rsid.fliped.ref
+head -n 70 CHD_AllQC_rsid.fliped.ref.vcf | cut -f 1-6
+head CHD_AllQC_rsid.fliped.ref.allele
+
+grep -v '#' CHD_AllQC_rsid.fliped.ref.vcf | cut -f 4  | sort | uniq -c
+grep -v '#' CHD_AllQC_rsid.fliped.ref.vcf | cut -f 5  | sort | uniq -c
+# grep '#' CHD_AllQC_rsid.fliped.ref.vcf 
+
+mv CHD_AllQC_rsid.fliped.ref.vcf impute.vcf
+bgzip impute.vcf
+LD_LIBRARY_PATH=~/usr/lib/ tabix impute.vcf.gz
+
+wget https://imputation.sanger.ac.uk/www/plink2ensembl.txt
+bcftools annotate -Oz --rename-chrs plink2ensembl.txt impute.vcf.gz > imputechrensembl.vcf.gz
+LD_LIBRARY_PATH=~/usr/lib/ tabix imputechrensembl.vcf.gz
+zcat imputechrensembl.vcf.gz | head -n 28
+
+sed -e 's/>23/>X/' human_g1k_v37.fasta > human_g1k_v37.ensembl.fasta
+awk 'BEGIN{b=1;}{if($0~/>Y/){b=0} if(b==1){print $0}}' human_g1k_v37.ensembl.fasta > human_g1k_v37.ensembl_1-X.fasta
+grep ">" human_g1k_v37.ensembl_1-X.fasta
+
+grep 5739516 *.bim | head
+grep 5739516 download/*.vcf | head 
+
+java -jar ~/usr/jar/CreateSequenceDictionary.jar R=download/human_g1k_v37.ensembl_1-X.fasta O=download/human_g1k_v37.ensembl_1-X.dict
+java -Xmx24G -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -T LeftAlignAndTrimVariants  -R download/human_g1k_v37.ensembl_1-X.fasta --variant imputechrensembl.vcf.gz  -o imputechrensembl.leftaligned.vcf
+bcftools norm -f ${dbpath}/human_g1k_v37.ensembl_1-X.fasta imputechrensembl.vcf.gz -O z > imputechrensembl.norm.vcf.gz
+
+java -Xmx24G -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -T LeftAlignAndTrimVariants  -R download/human_g1k_v37.ensembl_1-X.fasta --variant test.vcf  -o imputechrensembl.leftaligned.vcf
+
+bcftools norm -cw -f ${dbpath}/human_g1k_v37.ensembl_1-X.fasta imputechrensembl.vcf.gz | bgzip -c /dev/stdin > imputechrensembl.checked.vcf.gz
 
 
-/statgen/meiwen/CHD/tools/snpflip/bin/snpflip -b CHD_AllQC_rsid.SEXas23.result.bim -f $dbpath/human_g1k_v37.fasta -o CHD_AllQC_rsid.SEXas23.result.snpflip_output 
+cut -d ' ' -f 5 CHD_AllQC_rsid.fliped.ref.1.fam | sort | uniq -c
+awk 'OFS="\t"{if($5==2){$5="F"}if($5==1){$5="M"} print $2,$5}' CHD_AllQC_rsid.fliped.ref.1.fam > samples.txt
 
-awk '$1==0' CHD_AllQC_rsid.SEXasX.result.bim | cut -f 2 | sed -e 's/rs//g' > CHD_AllQC_rsid.SEXasX.result.unmapped.list
-
-plink --bfile CHD_AllQC_rsid --exclude CHD_AllQC_rsid.SEXasX.result.unmapped.list --make-bed --out CHD_AllQC_rsid.tmp
-
-cp CHD_AllQC_rsid.SEXas23.result.bim CHD_AllQC_rsid.tmp.bim
-
-plink --bfile CHD_AllQC_rsid.tmp --flip CHD_AllQC_rsid.SEXas23.result.snpflip_output.reverse --make-bed --out CHD_AllQC_rsid.fliped
 
 ```
