@@ -62,7 +62,7 @@ mv CHD_AllQC_rsid.fliped.ref.vcf impute.vcf
 bgzip impute.vcf
 LD_LIBRARY_PATH=~/usr/lib/ tabix impute.vcf.gz
 
-wget https://imputation.sanger.ac.uk/www/plink2ensembl.txt
+#wget https://imputation.sanger.ac.uk/www/plink2ensembl.txt
 bcftools annotate -Oz --rename-chrs plink2ensembl.txt impute.vcf.gz > imputechrensembl.vcf.gz
 LD_LIBRARY_PATH=~/usr/lib/ tabix imputechrensembl.vcf.gz
 zcat imputechrensembl.vcf.gz | head -n 28
@@ -74,8 +74,6 @@ grep ">" human_g1k_v37.ensembl_1-X.fasta
 grep 5739516 *.bim | head
 grep 5739516 download/*.vcf | head 
 
-java -jar ~/usr/jar/CreateSequenceDictionary.jar R=download/human_g1k_v37.ensembl_1-X.fasta O=download/human_g1k_v37.ensembl_1-X.dict
-java -Xmx24G -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -T LeftAlignAndTrimVariants  -R download/human_g1k_v37.ensembl_1-X.fasta --variant imputechrensembl.vcf.gz  -o imputechrensembl.leftaligned.vcf
 bcftools norm -f ${dbpath}/human_g1k_v37.ensembl_1-X.fasta imputechrensembl.vcf.gz -O z > imputechrensembl.norm.vcf.gz
 
 java -Xmx24G -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -T LeftAlignAndTrimVariants  -R download/human_g1k_v37.ensembl_1-X.fasta --variant test.vcf  -o imputechrensembl.leftaligned.vcf
