@@ -40,7 +40,7 @@ cut -f 3 CHD_AllQC_rsid.fliped.ref.1.dbSNP146 > CHD_AllQC_rsid.fliped.ref.1.dbSN
 plink --bfile CHD_AllQC_rsid.fliped.ref.1 --keep-allele-order --extract CHD_AllQC_rsid.fliped.ref.1.dbSNP146.snplist --make-bed --out CHD_AllQC_rsid.fliped.ref.2
 
 paste CHD_AllQC_rsid.fliped.ref.1.dbSNP146 CHD_AllQC_rsid.fliped.ref.2.bim | awk '$3==$7{OFS="\t";
-      if(($10=="-" && (length($4)==2 || length($5)==2) ) || ($11=="-" && (length($4)==2 || length($5)==2))){$9=$2;$10=$4;$11=$5;} 
+      if(($10=="-" && (length($4)==2 || length($5)==2) ) || ($11=="-" && (length($4)==2 || length($5)==2))){$9=$2;$10=$5;$11=$4;} 
       if(length($10)==1 || length($11)==1){ print $0; } }' | cut -f 6-11 | grep -P -v ",|-"  > CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim
 
 wc -l  CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim CHD_AllQC_rsid.fliped.ref.2.bim
@@ -48,6 +48,7 @@ cut -f 2 CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim > CHD_AllQC_rsid.fli
 
 plink --bfile CHD_AllQC_rsid.fliped.ref.2 --keep-allele-order --extract CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.snplist --make-bed --out CHD_AllQC_rsid.fliped.ref.3
 wc -l CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim  CHD_AllQC_rsid.fliped.ref.3.bim
+head CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim  CHD_AllQC_rsid.fliped.ref.3.bim
 cp CHD_AllQC_rsid.fliped.ref.2.dbSNP146.biallelic.bim  CHD_AllQC_rsid.fliped.ref.3.bim
 
 plink --bfile CHD_AllQC_rsid.fliped.ref.3 --keep-allele-order --recode vcf-iid  --out CHD_AllQC_rsid.fliped.ref
@@ -58,7 +59,7 @@ grep -v '#' CHD_AllQC_rsid.fliped.ref.vcf | cut -f 4  | sort | uniq -c
 grep -v '#' CHD_AllQC_rsid.fliped.ref.vcf | cut -f 5  | sort | uniq -c
 # grep '#' CHD_AllQC_rsid.fliped.ref.vcf 
 
-mv CHD_AllQC_rsid.fliped.ref.vcf impute.vcf
+cp CHD_AllQC_rsid.fliped.ref.vcf impute.vcf
 bgzip impute.vcf
 LD_LIBRARY_PATH=~/usr/lib/ tabix impute.vcf.gz
 
@@ -74,15 +75,47 @@ grep ">" human_g1k_v37.ensembl_1-X.fasta
 grep 5739516 *.bim | head
 grep 5739516 download/*.vcf | head 
 
-bcftools norm -f ${dbpath}/human_g1k_v37.ensembl_1-X.fasta imputechrensembl.vcf.gz -O z > imputechrensembl.norm.vcf.gz
+#bcftools norm -c wxs -f ${dbpath}/human_g1k_v37.ensembl_1-X.fasta imputechrensembl.vcf.gz -O z > imputechrensembl.norm.vcf.gz
+bcftools norm -c w -f ${dbpath}/human_g1k_v37.ensembl_1-X.fasta imputechrensembl.vcf.gz -O z > imputechrensembl.norm.vcf.gz
+Lines   total/split/realigned/skipped:  429257/0/0/0
 
-java -Xmx24G -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -T LeftAlignAndTrimVariants  -R download/human_g1k_v37.ensembl_1-X.fasta --variant test.vcf  -o imputechrensembl.leftaligned.vcf
-
-bcftools norm -cw -f ${dbpath}/human_g1k_v37.ensembl_1-X.fasta imputechrensembl.vcf.gz | bgzip -c /dev/stdin > imputechrensembl.checked.vcf.gz
-
+LD_LIBRARY_PATH=~/usr/lib/ tabix imputechrensembl.norm.vcf.gz
 
 cut -d ' ' -f 5 CHD_AllQC_rsid.fliped.ref.1.fam | sort | uniq -c
 awk 'OFS="\t"{if($5==2){$5="F"}if($5==1){$5="M"} print $2,$5}' CHD_AllQC_rsid.fliped.ref.1.fam > samples.txt
 
+```
+
+## globus
+
+```{r,eval=F}
+
+which virtualenv || pip install virtualenv
+LD_LIBRARY_PATH=/home/meiwen/anaconda2/lib/ virtualenv "$HOME/.globus-cli-virtualenv"
+echo "export LD_LIBRARY_PATH=/home/meiwen/anaconda2/lib/" >> $HOME/.globus-cli-virtualenv/bin/activate
+source "$HOME/.globus-cli-virtualenv/bin/activate"
+pip install globus-cli
+deactivate
+export PATH="$PATH:$HOME/.globus-cli-virtualenv/bin"
+
+globus login
+globus get-identities 'zhaochen.tcm@gmail.com'
+
+globus endpoint create --personal globusimputepe2
+Message:     Endpoint created successfully
+Endpoint ID: 6a17ce90-20fc-11e7-bc3c-22000b9a448b
+Setup Key:   f1f8a811-d5c5-454c-a520-fad51a35b07e
+
+./globusconnectpersonal -setup f1f8a811-d5c5-454c-a520-fad51a35b07e
+### fail to connect, cp to HM server
+
+rsync -avzP sichao@202.127.22.38:~/samples.txt ./globusshare/
+rsync -avzP sichao@202.127.22.38:~/imputechrensembl.norm.v* ./globusshare/
+
+
 
 ```
+
+
+
+
