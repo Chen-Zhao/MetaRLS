@@ -114,7 +114,7 @@ rsync -avzP sichao@202.127.22.38:~/samples.txt ./globusshare/
 rsync -avzP sichao@202.127.22.38:~/imputechrensembl.norm.v* ./globusshare/
 
 # build a test data
-zcat imputechrensembl.norm.vcf.gz | awk 'NR%100==0 || $1~/#/' | bgzip -c /dev/stdin > imputechrensembl.test.norm.vcf.gz
+zcat imputechrensembl.norm.vcf.gz | awk 'NR%100>0 || $1~/#/' | bgzip -c /dev/stdin > imputechrensembl.test.norm.vcf.gz
 tabix imputechrensembl.test.norm.vcf.gz
 
 # upload 
