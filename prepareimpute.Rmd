@@ -120,7 +120,33 @@ tabix imputechrensembl.test.norm.vcf.gz
 # upload 
 
 ```
+## impute
 
+impute by HRC panel and UK10K+1000g panel
+HRC panel for all data and test data
+UK10k+1000g panel for all data and test dat, stand pipelien and shapeit2 pipeline
+
+## download 
+
+```{r, eval=F}
+
+835f17e9-6907-4fa5-a918-0ae94073fa28
+
+git clone https://github.com/rofl0r/proxychains-ng.git
+configure --prefix=~/usr --sysconfdir=~/etc
+make -j 8 and make install
+make install-config
+
+@ pcl167
+
+cd /home/meiwen/statgen/CHD/mw/08imputation
+proxychains4 -f ~/etc/proxychains.conf ./globusconnectpersonal-2.3.3/globusconnect
+
+## firewall failed
+
+download in HM server
+
+```
 
 
 
