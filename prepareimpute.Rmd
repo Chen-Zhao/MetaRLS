@@ -148,6 +148,47 @@ download in HM server
 
 ```
 
+## impute QC
+
+```{r,eval=F}
+
+# test chr22
+
+zcat imputechrensembl.norm.vcf.gz | awk 'NR%100==0 || $1~/#/' > imputechrensembl.test.norm.true.vcf
+zcat 22.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' > imputechrensembl.test.norm.pred.vcf
+extractbyquery.pl imputechrensembl.test.norm.pred.vcf 3 ../imputechrensembl.test.norm.true.vcf 3 | grep -v '#' > imputechrensembl.test.norm.true.vcf
+
+R
+
+itrue <- read.table("imputechrensembl.test.norm.true.vcf",stringsAsFactors=F,header=F)
+ipred <- read.table("imputechrensembl.test.norm.pred.vcf",stringsAsFactors=F,header=F)
+
+iinfo <- as.numeric(gsub(".*INFO=(.*)","\\1",ipred[[8]]))
+GTidx <- c("0/0","0/1","0/1","1/1")
+names(GTidx) <- c("0|0","0|1","1|0","1|1")
+GPidx <- c(NA,2,1,0)
+names(GPidx) <- c("./.","0/0","0/1","1/1")
+ipred_GT <- t(apply(ipred[,-(1:9)],1,function(x){
+   GTidx[gsub(":.*","",x)]
+}))
+iaccy_GT <- sapply(1:nrow(ipred_GT),function(i){
+   x <- as.character(itrue[i,-c(1:9)])
+   y <- ipred_GT[i,]
+   sum(x==y)/length(x)
+})
+ipred_GP <- t(apply(ipred[,-(1:9)],1,function(x){
+   sapply(strsplit(gsub(".*:","",x),","),function(y){y<-as.numeric(y);y[1]*2+y[2]})
+}))
+itrue_GP <- t(apply(itrue[,-(1:9)],1,function(x){
+   GPidx[x]
+}))
+iaccy_meandif_GP <- apply(itrue_GP-ipred_GP,1,function(x){mean(abs(x),na.rm=T)})
+par(mfrow=c(1,2))
+plot(iinfo,iaccy_GT)
+plot(iinfo,iaccy_meandif_GP)
+
+```
+
 ## vcf filter
 
 ```{r,eval=F}
