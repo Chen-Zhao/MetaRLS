@@ -158,6 +158,29 @@ cd /home/chenzhao/globusshare/imputecathy.vcfs
 tabix 22.vcf.gz
 zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' INFO > 0.1 ' | wc -l
 
+zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' (RefPanelAF > 0.005 & RefPanelAF < 0.995) & INFO > 0.1 ' | wc -l
+zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.1 ) '  | wc -l
+
+
+
+```
+
+## snptest 
+
+```{r,eval=F}
+
+zcat 22.vcf.gz | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.1 ) ' | head -n 10000| bgzip -c /dev/stdin > test.snptest.vcf.gz
+
+echo 'ID_1 ID_2 missing sex chd mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10' > sampleinfo.snptest.sample
+echo '0 0 0 D B C C C C C C C C C C' >> sampleinfo.snptest.sample
+
+awk 'NR>1' CHD_iQC_lQC02_PCA_lQC_mds.mds | tr -s '\t' | tr -s ' ' | tr '\t' ' ' | sed -e 's/^ //' |  cut -d ' '  -f 4- > sampleinfo.snptest.mds
+cut -d ' ' -f 1,2,3,5,6  CHD_AllQC_rsid.fam | awk '{$4=2-$4; $5=$5-1; print $0}'  > sampleinfo.snptest.pheno
+paste -d ' ' sampleinfo.snptest.pheno sampleinfo.snptest.mds >> sampleinfo.snptest.sample
+
+snptest_v2.5.4-beta2 -data test.snptest.vcf.gz sampleinfo.snptest.sample -o test.snptest.out  -genotype_field GP -frequentist 1 -method expected -pheno chd -hwe -log test.snptest.log
+
+grep alternate_ids test.snptest.out | tr ' ' '\n' | awk '{print NR,$0}'
 
 ```
 
