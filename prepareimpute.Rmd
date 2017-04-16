@@ -160,6 +160,11 @@ extractbyquery.pl imputechrensembl.test.norm.pred.vcf 3 ../imputechrensembl.test
 
 R
 
+par(mfrow=c(2,2))
+
+setwd("/home/chenzhao/globusshare/imputecathy10k100gQC.vcfs")
+setwd("/home/chenzhao/globusshare/imputecathyQC.vcfs")
+
 itrue <- read.table("imputechrensembl.test.norm.true.vcf",stringsAsFactors=F,header=F)
 ipred <- read.table("imputechrensembl.test.norm.pred.vcf",stringsAsFactors=F,header=F)
 
@@ -183,7 +188,6 @@ itrue_GP <- t(apply(itrue[,-(1:9)],1,function(x){
    GPidx[x]
 }))
 iaccy_meandif_GP <- apply(itrue_GP-ipred_GP,1,function(x){mean(abs(x),na.rm=T)})
-par(mfrow=c(1,2))
 plot(iinfo,iaccy_GT)
 plot(iinfo,iaccy_meandif_GP)
 
