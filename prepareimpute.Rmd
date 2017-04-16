@@ -148,5 +148,16 @@ download in HM server
 
 ```
 
+## vcf filter
 
+```{r,eval=F}
+git clone --recursive https://github.com/ekg/vcflib.git
+
+cd /home/chenzhao/globusshare/imputecathy.vcfs
+
+tabix 22.vcf.gz
+zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' INFO > 0.1 ' | wc -l
+
+
+```
 
