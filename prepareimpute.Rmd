@@ -153,10 +153,18 @@ download in HM server
 ```{r,eval=F}
 
 # test chr22
-
+cd /home/chenzhao/globusshare/
 zcat imputechrensembl.norm.vcf.gz | awk 'NR%100==0 || $1~/#/' > imputechrensembl.test.norm.true.vcf
+
+cd /home/chenzhao/globusshare/imputecathyQC.vcfs
+cd /home/chenzhao/globusshare/imputecathy10k100gQC.vcfs
 zcat 22.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' > imputechrensembl.test.norm.pred.vcf
 extractbyquery.pl imputechrensembl.test.norm.pred.vcf 3 ../imputechrensembl.test.norm.true.vcf 3 | grep -v '#' > imputechrensembl.test.norm.true.vcf
+
+cd /home/chenzhao/globusshare/imputecathy10k100gQCshapeit2.vcfs
+zcat 22.pbwt_reference_impute.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' > imputechrensembl.test.norm.pred.vcf
+extractbyquery.pl imputechrensembl.test.norm.pred.vcf 3 ../imputechrensembl.test.norm.true.vcf 3 | grep -v '#' > imputechrensembl.test.norm.true.vcf
+
 
 R
 
@@ -164,6 +172,7 @@ par(mfrow=c(2,2))
 
 setwd("/home/chenzhao/globusshare/imputecathy10k100gQC.vcfs")
 setwd("/home/chenzhao/globusshare/imputecathyQC.vcfs")
+setwd("/home/chenzhao/globusshare/imputecathy10k100gQCshapeit2.vcfs")
 
 itrue <- read.table("imputechrensembl.test.norm.true.vcf",stringsAsFactors=F,header=F)
 ipred <- read.table("imputechrensembl.test.norm.pred.vcf",stringsAsFactors=F,header=F)
