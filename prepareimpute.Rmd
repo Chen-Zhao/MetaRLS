@@ -255,7 +255,24 @@ plot_acccy("/home/chenzhao/globusshare/imputecathy10k100gQCshapeit2.vcfs",pipeli
 ```{r,eval=F}
 git clone --recursive https://github.com/ekg/vcflib.git
 
-cd /home/chenzhao/globusshare/imputecathy.vcfs
+cat /etc/*release*
+
+# with root
+
+su
+rpm --import http://linuxsoft.cern.ch/cern/slc6X/x86_64/RPM-GPG-KEY-cern
+wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
+yum install devtoolset-2
+
+exit
+
+scl enable devtoolset-2 bash
+
+cd /statgen/meiwen/CHD/mw/08imputation/imputecathy.vcfs/vcflib
+make -j 8 
+
+
+cd /statgen/meiwen/CHD/mw/08imputation/imputecathy.vcfs
 
 tabix 22.vcf.gz
 zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' INFO > 0.1 ' | wc -l
@@ -263,6 +280,10 @@ zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' INFO > 0.1 ' | wc -l
 zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' (RefPanelAF > 0.005 & RefPanelAF < 0.995) & INFO > 0.1 ' | wc -l
 zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.1 ) '  | wc -l
 
+
+for i in {1..22} ; do 
+zcat $i.vcf.gz | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.5 ) ' | bgzip -c /dev/stdin > $i.filterMAF0005INFO05.vcf.gz ; 
+done
 
 
 ```
