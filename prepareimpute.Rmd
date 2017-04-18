@@ -165,17 +165,26 @@ download in HM server
 
 ```{r,eval=F}
 
-# test chr22
+# test autosome
 cd /home/chenzhao/globusshare/
 zcat imputechrensembl.norm.vcf.gz | awk 'NR%100==0 || $1~/#/' > imputechrensembl.test.norm.true.vcf
 
 cd /home/chenzhao/globusshare/imputecathyQC.vcfs
 cd /home/chenzhao/globusshare/imputecathy10k100gQC.vcfs
-zcat 22.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' > imputechrensembl.test.norm.pred.vcf
+
+rm imputechrensembl.test.norm.pred.vcf
+for i in {1..22}; do
+zcat $i.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' >> imputechrensembl.test.norm.pred.vcf ; 
+done;
+
 extractbyquery.pl imputechrensembl.test.norm.pred.vcf 3 ../imputechrensembl.test.norm.true.vcf 3 | grep -v '#' > imputechrensembl.test.norm.true.vcf
 
 cd /home/chenzhao/globusshare/imputecathy10k100gQCshapeit2.vcfs
-zcat 22.pbwt_reference_impute.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' > imputechrensembl.test.norm.pred.vcf
+rm imputechrensembl.test.norm.pred.vcf
+for i in {1..22}; do
+zcat $i.pbwt_reference_impute.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' >> imputechrensembl.test.norm.pred.vcf ;
+done
+
 extractbyquery.pl imputechrensembl.test.norm.pred.vcf 3 ../imputechrensembl.test.norm.true.vcf 3 | grep -v '#' > imputechrensembl.test.norm.true.vcf
 
 
