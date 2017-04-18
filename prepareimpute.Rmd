@@ -172,7 +172,7 @@ zcat imputechrensembl.norm.vcf.gz | awk 'NR%100==0 || $1~/#/' > imputechrensembl
 cd /home/chenzhao/globusshare/imputecathyQC.vcfs
 cd /home/chenzhao/globusshare/imputecathy10k100gQC.vcfs
 
-！！！！！！ SLOW, try parallel
+!!!!! SLOW, try parallel
 
 rm imputechrensembl.test.norm.pred.vcf
 for i in {1..22}; do
