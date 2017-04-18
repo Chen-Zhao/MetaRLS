@@ -199,8 +199,12 @@ R
 
 plot_acccy <- function(path="/home/chenzhao/globusshare/imputecathy10k100gQC.vcfs",pipeline="EAGLE2+PBWT"){
    setwd(path) 
-   itrue <- read.table("imputechrensembl.test.norm.true.vcf",stringsAsFactors=F,header=F)
-   ipred <- read.table("imputechrensembl.test.norm.pred.vcf",stringsAsFactors=F,header=F)
+   itrue <- read.delim("imputechrensembl.test.norm.true.vcf",stringsAsFactors=F,header=F)
+   ipred <- read.delim("imputechrensembl.test.norm.pred.vcf",stringsAsFactors=F,header=F)
+
+   matchrsid <- intersect(itrue[,3],ipred[,3])
+   itrue <- itrue[match(matchrsid,itrue[,3]),]
+   ipred <- ipred[match(matchrsid,ipred[,3]),]
 
    iinfo <- as.numeric(gsub(".*INFO=(.*)","\\1",ipred[[8]]))
    GTidx <- c("0/0","0/1","0/1","1/1")
@@ -225,11 +229,18 @@ plot_acccy <- function(path="/home/chenzhao/globusshare/imputecathy10k100gQC.vcf
       GPidx[x]
    }))
    iaccy_meandif_GP <- apply(itrue_GP-ipred_GP,1,function(x){mean(abs(x),na.rm=T)})
+   iaccy_r2_GP <- sapply(1:nrow(itrue_GP), function(i){
+               na.rm = !is.na(itrue_GP[i,]+ipred_GP[i,])
+               cor(itrue_GP[i,na.rm],ipred_GP[i,na.rm])^2
+   })
+   
    plot(iinfo,iaccy_GT)
    plot(iinfo,iaccy_meandif_GP)
+   plot(iinfo,iaccy_r2_GP)
+
 }
 
-par(mfrow=c(3,2))
+par(mfrow=c(3,3))
 
 plot_acccy("/home/chenzhao/globusshare/imputecathy10k100gQC.vcfs",pipeline="EAGLE2+PBWT")
 plot_acccy("/home/chenzhao/globusshare/imputecathyQC.vcfs",pipeline="EAGLE2+PBWT")
