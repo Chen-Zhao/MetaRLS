@@ -122,9 +122,22 @@ tabix imputechrensembl.test.norm.vcf.gz
 ```
 ## impute
 
-impute by HRC panel and UK10K+1000g panel
-HRC panel for all data and test data
-UK10k+1000g panel for all data and test dat, stand pipelien and shapeit2 pipeline
+impute by:
+
+HRC panel and UK10K+1000g panel;
+   HRC panel for 
+       
+       all data
+       
+       test data
+
+   UK10k+1000g panel for 
+       
+       all data
+           stand pipelien
+       test dat, 
+           stand pipelien
+           shapeit2 pipeline
 
 ## download 
 
