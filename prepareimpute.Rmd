@@ -172,10 +172,16 @@ zcat imputechrensembl.norm.vcf.gz | awk 'NR%100==0 || $1~/#/' > imputechrensembl
 cd /home/chenzhao/globusshare/imputecathyQC.vcfs
 cd /home/chenzhao/globusshare/imputecathy10k100gQC.vcfs
 
+！！！！！！ SLOW, try parallel
+
 rm imputechrensembl.test.norm.pred.vcf
 for i in {1..22}; do
-zcat $i.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' >> imputechrensembl.test.norm.pred.vcf ; 
+zcat $i.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' >> imputechrensembl.test.norm.pred.vcf.$i ; 
 done;
+
+for i in {1..22}; do
+zcat imputechrensembl.test.norm.pred.vcf.$i >> imputechrensembl.test.norm.pred.vcf ; 
+done
 
 extractbyquery.pl imputechrensembl.test.norm.pred.vcf 3 ../imputechrensembl.test.norm.true.vcf 3 | grep -v '#' > imputechrensembl.test.norm.true.vcf
 
