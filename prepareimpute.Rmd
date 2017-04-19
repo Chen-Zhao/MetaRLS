@@ -268,6 +268,17 @@ exit
 
 scl enable devtoolset-2 bash
 
+# build glibc
+mkdir build
+cd build
+/configure --prefix=/home/meiwen/usr/ --localstatedir=/home/meiwen/var
+
+# build zlib
+
+export LD_LIBRARY_PATH=/home/meiwen/usr/lib
+export LD_PRELOAD=' /home/meiwen/usr/lib/libc-2.15.so /home/meiwen/usr/lib/libz.so.1.2.11 ' 
+vcfCooker
+
 cd /statgen/meiwen/CHD/mw/08imputation/imputecathy.vcfs/vcflib
 make -j 8 
 
@@ -281,9 +292,28 @@ zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' (RefPanelAF > 0.005 & RefPanelAF <
 zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.1 ) '  | wc -l
 
 
+# a faster version ? trying
 for i in {1..22} ; do \
 zcat $i.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.5 ) ' | cut -f 3 | grep -P '^rs' > $i.filterMAF0005INFO05.snplist ; \
 done
+
+## tested to be slow
+vcftools --gzvcf 1.vcf.gz --snps 1.filterMAF0005INFO05.snplist  --out 1.filterMAF0005INFO05.vcftools
+
+## tested to be slow
+
+zcat 22.vcf.gz | head -n 5000 | grep '#' > header.vcf
+
+i=1
+{ cat header.vcf ; zcat $i.vcf.gz | extractbyquery.pl $i.filterMAF0005INFO05.snplist 3 /dev/stdin 3 ; } | bgzip -c /dev/stdin > $i.filterMAF0005INFO05.extract.vcf.gz
+
+## GATK
+
+tabix 1.vcf.gz
+LD_PRELOAD=""  java -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -R ../download/human_g1k_v37.ensembl_1-X.fasta -T SelectVariants --variant 1.vcf.gz --keepIDs 1.filterMAF0005INFO05.snplist --out 1.filterMAF0005INFO05.gatk.vcf.gz
+
+i=22
+LD_PRELOAD=""  java -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -R ../download/human_g1k_v37.ensembl_1-X.fasta -T SelectVariants --variant $i.vcf.gz --keepIDs $i.filterMAF0005INFO05.snplist --out $i.filterMAF0005INFO05.gatk.vcf.gz
 
 
 ```
