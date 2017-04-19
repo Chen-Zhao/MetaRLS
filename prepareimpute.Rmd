@@ -315,6 +315,21 @@ LD_PRELOAD=""  java -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -R ../download/human
 i=22
 LD_PRELOAD=""  java -jar ~/usr/jar/GenomeAnalysisTK_3.5.jar -R ../download/human_g1k_v37.ensembl_1-X.fasta -T SelectVariants --variant $i.vcf.gz --keepIDs $i.filterMAF0005INFO05.snplist --out $i.filterMAF0005INFO05.gatk.vcf.gz
 
+### too slow and no resource in MPI; go back to HM
+
+for i in {1..22} ; do  
+tabix $i.vcf.gz & 
+done;
+
+for i in {1..22} ; do  
+zcat $i.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.5 ) ' | cut -f 3 | grep -P '^rs' > $i.filterMAF0005I
+NFO05.snplist & 
+done
+
+for i in {9..12} ; do 
+java -Xmx10G -jar /home/softwares/jar/GenomeAnalysisTK_3.5.jar  -R /home/db/igenome/Homo_sapiens/Ensembl/GRCh37/Sequence/WholeGenomeFasta/genome.fa -T SelectVariants --variant $i.vcf.gz --keepIDs $i.filterMAF0005INFO05.snplist --out $i.filterMAF0005INFO05.gatk.vcf.gz & 
+done
+
 
 ```
 
