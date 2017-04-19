@@ -4,38 +4,50 @@
 
 cd ~/usr/src
 
-#wget https://github.com/servo/nspr/archive/master.zip
-#./configure  --prefix=/home/ing/chen.zhao/usr/ 
-
-wget http://tukaani.org/lzma/lzma-4.32.7.tar.gz
-./configure  --prefix=/home/ing/chen.zhao/usr/
-make
-make install
-
 wget https://github.com/sclorg/scl-utils/archive/scl-1.zip
 unzip scl-1
 make 
 cp scl ~/usr/bin
 
-wget http://download.oracle.com/berkeley-db/db-4.5.20.tar.gz
-tar xzf db-4.5.20.tar.gz
-ln -sf db-4.5.20 db
-wget http://ftp.rpm.org/releases/rpm-4.6.x/rpm-4.6.0.tar.bz2
-tar jxf rpm-4.6.0.tar.bz2
-cd ~/usr/src/rpm-4.6.0
-export C_INCLUDE_PATH=/home/ing/chen.zhao/usr/include/
-
-wget http://download.oracle.com/berkeley-db/db-4.5.20.tar.gz
-tar xzf db-4.5.20.tar.gz
-ln -s db-4.5.20 db
-
-
-CFLAGS="-I/usr/include/nss3/ -I/usr/include/nspr4 " ./configure  --prefix=/home/ing/chen.zhao/usr/ 
 
 
 mkdir rpms
 cd rpms
-wget -np -r https://people.centos.org/tru/devtools-2/6/x86_64/RPMS/
-rpm -ivh --relocate /=/home/ing/chen.zhao/chroot people.centos.org/tru/devtools-2/6/x86_64/RPMS/devtoolset-2-gcc-4.8.2-15.el6.x86_64.rpm
+wget -np -r https://people.centos.org/tru/devtools-2/5/x86_64/RPMS/
+cd ~/chroot/rpms/people.centos.org/tru/devtools-2/5/x86_64/RPMS/
+wget ftp://ftp.icm.edu.pl/vol/rzm5/linux-scientificlinux/obsolete/59/x86_64/SL/libgomp-4.4.7-1.el5.x86_64.rpm
+
+rpm -ivh --relocate /=/home/ing/chen.zhao/chroot devtoolset-2-gcc-4.8.2-15.el5.x86_64.rpm devtoolset-2-runtime-2.1-3.el5.noarch.rpm scl-utils-20120927-9.el5.x86_64.rpm libgomp-4.4.7-1.el5.x86_64.rpm
+
+
+rpm2cpio devtoolset-2-gcc-4.8.2-15.el5.x86_64.rpm devtoolset-2-runtime-2.1-3.el5.noarch.rpm scl-utils-20120927-9.el5.x86_64.rpm libgomp-4.4.7-1.el5.x86_64.rpm |   sh -c 'cd ~/chroot && cpio -idmv --no-absolute-filenames'
+
+pwd /home/ing/chen.zhao/chroot
+vi enable
+export PATH=/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root/usr/bin${PATH:+:${PATH}}
+export MANPATH=/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root/usr/share/man:$MANPATH
+export INFOPATH=/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root/usr/share/info${INFOPATH:+:${INFOPATH}}
+export PCP_DIR=/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root
+# Some perl Ext::MakeMaker versions install things under /usr/lib/perl5
+# even though the system otherwise would go to /usr/lib64/perl5.
+export PERL5LIB=/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root//usr/lib64/perl5/vendor_perl:/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root/usr/lib/perl5:/home/ing/chen.zhao/chroot/o
+pt/rh/devtoolset-2/root//usr/share/perl5/vendor_perl${PERL5LIB:+:${PERL5LIB}}# bz847911 workaround:
+# we need to evaluate rpm's installed run-time % { _libdir }, not rpmbuild time
+# or else /etc/ld.so.conf.d files?
+rpmlibdir=`rpm --eval "%{_libdir}"`
+# bz1017604: On 64-bit hosts, we should include also the 32-bit library path.
+if [ "$rpmlibdir" != "${rpmlibdir/lib64/}" ]; then
+  rpmlibdir32=":/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root${rpmlibdir/lib64/lib}"
+fi
+export LD_LIBRARY_PATH=/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root$rpmlibdir$rpmlibdir32${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+# duplicate python site.py logic for sitepackages
+#pythonvers=`python -c 'import sys; print sys.version[:3]'`
+#export PYTHONPATH=/opt/rh/devtoolset-2/root/usr/lib64/python$pythonvers/site-packages:/opt/rh/devtoolset-2/root/usr/lib/python$pythonvers/site-packages${PYTHONPATH:+:${PYTHONPATH}}
+bash
+
+cp enable  ~/usr/bin/enable
+chmod 755 ~/usr/bin/enable
+
+enable
 
 ```
