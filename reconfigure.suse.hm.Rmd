@@ -4,7 +4,30 @@ all start from gcc
 
 ```{r,eval=F}
 
+rm ~/chroot -rf
+
 cd ~/usr/src
+# install gcc
+
+wget http://download.savannah.gnu.org/releases/lzip/lzip-1.18.tar.gz
+#tar configure make install
+wget http://isl.gforge.inria.fr/isl-0.18.tar.gz
+
+bzr checkout bzr://bzr.savannah.gnu.org/gsrc/trunk/ gsrc
+cd gsrc/
+./bootstrap                       # to create the configure script
+./configure --prefix=$HOME/usr    # --prefix is directory to install the packages
+bash ./setup.sh    
+
+source ~/usr/bin/enable.sh
+source ~/usr/bin/enable.gnat.sh
+
+make -j 8  -C pkg/gnu/gcc
+
+
+make -C pkg/gnu/hello
+make -C pkg/gnu/hello install
+
 
 wget https://github.com/sclorg/scl-utils/archive/scl-1.zip
 unzip scl-1
