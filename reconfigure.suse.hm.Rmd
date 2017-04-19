@@ -17,10 +17,14 @@ wget -np -r https://people.centos.org/tru/devtools-2/5/x86_64/RPMS/
 cd ~/chroot/rpms/people.centos.org/tru/devtools-2/5/x86_64/RPMS/
 wget ftp://ftp.icm.edu.pl/vol/rzm5/linux-scientificlinux/obsolete/59/x86_64/SL/libgomp-4.4.7-1.el5.x86_64.rpm
 
-rpm -ivh --relocate /=/home/ing/chen.zhao/chroot devtoolset-2-gcc-4.8.2-15.el5.x86_64.rpm devtoolset-2-runtime-2.1-3.el5.noarch.rpm scl-utils-20120927-9.el5.x86_64.rpm libgomp-4.4.7-1.el5.x86_64.rpm
+rpm -ivh --relocate /=/home/ing/chen.zhao/chroot devtoolset-2-gcc-4.8.2-15.el5.x86_64.rpm devtoolset-2-runtime-2.1-3.el5.noarch.rpm scl-utils-20120927-9.el5.x86_64.rpm libgomp-4.4.7-1.el5.x86_64.rpm devtoolset-2-binutils-2.23.52.0.1-10.el5.x86_64.rpm
 
+wget ftp://ftp.icm.edu.pl/vol/rzm5/linux-scientificlinux/obsolete/5rolling/x86_64/SL/chkconfig-1.3.30.2-2.el5.x86_64.rpm
+rpm2cpio chkconfig-1.3.30.2-2.el5.x86_64.rpm | sh -c 'cd ~/chroot && cpio -idmv --no-absolute-filenames'
 
 rpm2cpio devtoolset-2-gcc-4.8.2-15.el5.x86_64.rpm devtoolset-2-runtime-2.1-3.el5.noarch.rpm scl-utils-20120927-9.el5.x86_64.rpm libgomp-4.4.7-1.el5.x86_64.rpm |   sh -c 'cd ~/chroot && cpio -idmv --no-absolute-filenames'
+
+rpm2cpio devtoolset-2-binutils-2.23.52.0.1-10.el5.x86_64.rpm |   sh -c 'cd ~/chroot && cpio -idmv --no-absolute-filenames'
 
 pwd /home/ing/chen.zhao/chroot
 vi enable
@@ -45,9 +49,22 @@ export LD_LIBRARY_PATH=/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root$rpmli
 #export PYTHONPATH=/opt/rh/devtoolset-2/root/usr/lib64/python$pythonvers/site-packages:/opt/rh/devtoolset-2/root/usr/lib/python$pythonvers/site-packages${PYTHONPATH:+:${PYTHONPATH}}
 bash
 
-cp enable  ~/usr/bin/enable
-chmod 755 ~/usr/bin/enable
+cp enable  ~/usr/bin/enable.sh
+chmod 755 ~/usr/bin/enable.sh
 
-enable
+enable.sh
+
+cd ~/usr/src
+wget https://ftp.gnu.org/gnu/glibc/glibc-2.15.tar.gz
+
+tar xzf glibc-2.15.tar.gz
+
+mkdir build
+cd build
+../configure --prefix=/home/ing/chen.zhao/usr/ --localstatedir=/home/ing/chen.zhao/chroot/var
+make -j 8 && make install
+
+
+
 
 ```
