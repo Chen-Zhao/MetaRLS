@@ -281,8 +281,8 @@ zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' (RefPanelAF > 0.005 & RefPanelAF <
 zcat 22.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.1 ) '  | wc -l
 
 
-for i in {1..22} ; do 
-zcat $i.vcf.gz | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.5 ) ' | bgzip -c /dev/stdin > $i.filterMAF0005INFO05.vcf.gz ; 
+for i in {1..22} ; do \
+zcat $i.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.5 ) ' | cut -f 3 | grep -P '^rs' > $i.filterMAF0005INFO05.snplist ; \
 done
 
 
