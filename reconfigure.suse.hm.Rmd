@@ -13,6 +13,15 @@ wget http://download.savannah.gnu.org/releases/lzip/lzip-1.18.tar.gz
 #tar configure make install
 wget http://isl.gforge.inria.fr/isl-0.18.tar.gz
 
+wget https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh
+
+wget https://launchpad.net/bzrtools/stable/2.6.0/+download/bzrtools-2.6.0.tar.gz
+wget https://launchpad.net/bzr/2.7/2.7.0/+download/bzr-2.7.0.tar.gz
+
+mkdir GSRC
+cd ~/usr/src/GSRC
+bzr heads --tips bzr://bzr.savannah.gnu.org/gsrc
+
 bzr checkout bzr://bzr.savannah.gnu.org/gsrc/trunk/ gsrc
 cd gsrc/
 ./bootstrap                       # to create the configure script
@@ -21,6 +30,9 @@ bash ./setup.sh
 
 source ~/usr/bin/enable.sh
 source ~/usr/bin/enable.gnat.sh
+
+vi pkg/gnu/gcc/Makefile
+gcc version as 4.9.4
 
 make -j 8  -C pkg/gnu/gcc
 
