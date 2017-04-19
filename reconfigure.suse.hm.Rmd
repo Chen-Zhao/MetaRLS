@@ -1,0 +1,29 @@
+# configure scl in suse 
+
+```{r,eval=F}
+
+cd ~/usr/src
+
+wget https://github.com/servo/nspr/archive/master.zip
+wget https://github.com/servo/nss/archive/master.zip
+
+./configure  --prefix=/home/ing/chen.zhao/usr/ 
+
+wget https://github.com/sclorg/scl-utils/archive/scl-1.zip
+unzip scl-1
+make 
+cp scl ~/usr/bin
+wget http://ftp.rpm.org/releases/rpm-4.6.x/rpm-4.6.0.tar.bz2
+tar jxf rpm-4.6.0.tar.bz2
+cd ~/usr/src/rpm-4.6.0
+export C_INCLUDE_PATH=/home/ing/chen.zhao/usr/include/
+CXXFLAGS=-I/home/ing/chen.zhao/usr/include/nspr CXXFLAGS=-I/home/ing/chen.zhao/usr/include/nspr CFLAGS=-I/home/ing/chen.zhao/usr/include/nspr ./configure  --prefix=/home/ing/
+chen.zhao/usr/ 
+
+
+mkdir rpms
+cd rpms
+wget -np -r https://people.centos.org/tru/devtools-2/6/x86_64/RPMS/
+rpm -ivh --relocate /=/home/ing/chen.zhao/chroot people.centos.org/tru/devtools-2/6/x86_64/RPMS/devtoolset-2-gcc-4.8.2-15.el6.x86_64.rpm
+
+```
