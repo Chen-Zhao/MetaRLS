@@ -1,4 +1,6 @@
-# configure scl in suse 
+# configure scl in suse; not work!!
+
+all start from gcc
 
 ```{r,eval=F}
 
@@ -64,6 +66,13 @@ cd build
 ../configure --prefix=/home/ing/chen.zhao/usr/ --localstatedir=/home/ing/chen.zhao/chroot/var
 make -j 8 && make install
 
+wget http://zlib.net/zlib-1.2.11.tar.gz
+export LD_LIBRARY_PATH=/home/ing/chen.zhao/chroot/opt/rh/devtoolset-2/root/usr/lib64 
+./configure --prefix=//home/ing/chen.zhao/usr/
+make -j 8 && make install
+
+wget ftp://share.sph.umich.edu/gotcloud/1.16/gotcloud-bin_1.16.tar.gz
+export LD_PRELOAD=' /home/ing/chen.zhao/usr/lib/libc-2.15.so /home/ing/chen.zhao/usr/lib/libz.so.1.2.11 ' 
 
 
 
