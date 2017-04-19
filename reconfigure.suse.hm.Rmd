@@ -4,21 +4,33 @@
 
 cd ~/usr/src
 
-wget https://github.com/servo/nspr/archive/master.zip
-wget https://github.com/servo/nss/archive/master.zip
+#wget https://github.com/servo/nspr/archive/master.zip
+#./configure  --prefix=/home/ing/chen.zhao/usr/ 
 
-./configure  --prefix=/home/ing/chen.zhao/usr/ 
+wget http://tukaani.org/lzma/lzma-4.32.7.tar.gz
+./configure  --prefix=/home/ing/chen.zhao/usr/
+make
+make install
 
 wget https://github.com/sclorg/scl-utils/archive/scl-1.zip
 unzip scl-1
 make 
 cp scl ~/usr/bin
+
+wget http://download.oracle.com/berkeley-db/db-4.5.20.tar.gz
+tar xzf db-4.5.20.tar.gz
+ln -sf db-4.5.20 db
 wget http://ftp.rpm.org/releases/rpm-4.6.x/rpm-4.6.0.tar.bz2
 tar jxf rpm-4.6.0.tar.bz2
 cd ~/usr/src/rpm-4.6.0
 export C_INCLUDE_PATH=/home/ing/chen.zhao/usr/include/
-CXXFLAGS=-I/home/ing/chen.zhao/usr/include/nspr CXXFLAGS=-I/home/ing/chen.zhao/usr/include/nspr CFLAGS=-I/home/ing/chen.zhao/usr/include/nspr ./configure  --prefix=/home/ing/
-chen.zhao/usr/ 
+
+wget http://download.oracle.com/berkeley-db/db-4.5.20.tar.gz
+tar xzf db-4.5.20.tar.gz
+ln -s db-4.5.20 db
+
+
+CFLAGS="-I/usr/include/nss3/ -I/usr/include/nspr4 " ./configure  --prefix=/home/ing/chen.zhao/usr/ 
 
 
 mkdir rpms
