@@ -250,7 +250,46 @@ plot_acccy("/home/chenzhao/globusshare/imputecathy10k100gQCshapeit2.vcfs",pipeli
 
 ```
 
-## vcf filter
+## vcf bcftools filter and snptest
+
+```{r,eval=F}
+
+for i in {1..22} X ; do  
+tabix $i.vcf.gz &
+done;
+
+## slower than vcffilter and gatk; 
+
+for i in {1..22} X ; do 
+bcftools view -Ou -i 'INFO>0.7 & RefPanelAF>0.005 & RefPanelAF<0.995' $i.vcf.gz | bcftools convert --tag GP -g $i.filterMAF0005INFO05.bcftools &
+done
+
+for i in {1..22} ; do 
+snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.bcftools.gen.gz ../sampleinfo.snptest.sample -o $i.filterMAF0005INFO05.bcftools.NEWMLonSEX.out \
+-method expected \
+-frequentist 1 \
+-pheno chd \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log $i.filterMAF0005INFO05.bcftools.NEWMLonSEX.out &
+done
+
+
+zcat X.filterMAF0005INFO05.bcftools.gen.gz | sed -e 's/nan/0.00/g' |  snptest_v2.5.4-beta2 -data /dev/stdin ../sampleinfo.snptest.sample -o X.filterMAF0005INFO05.bcftools.NEWMLonSEX.out \
+-method newml \
+-frequentist 1 \
+-pheno chd \
+-stratify_on sex \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log X.filterMAF0005INFO05.bcftools.NEWMLonSEX.out &
+
+
+```
+
+## vcf filter old 
+
+following old code; new, use bcftools;
+
+
 
 ```{r,eval=F}
 git clone --recursive https://github.com/ekg/vcflib.git
@@ -332,9 +371,15 @@ done
 
 ```
 
-## snptest 
+## snptest old 
+
+following old code; new, use bcftools;
 
 ```{r,eval=F}
+
+
+
+############### following old code; new, use bcftools;
 
 zcat 22.vcf.gz | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.1 ) ' | head -n 10000| bgzip -c /dev/stdin > test.snptest.vcf.gz
 
@@ -353,18 +398,39 @@ grep alternate_ids test.snptest.out | tr ' ' '\n' | awk '{print NR,$0}'
 
 for i in {1..12}; do 
 zcat $i.filterMAF0005INFO05.gatk.vcf.gz | awk 'NR!=8' | bgzip -c /dev/stdin > $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ;
-snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ../sampleinfo.snptest.sample -filetype vcf  -genotype_field GP -o $i.filterMAF0005INFO05.gatk.snptest.out -frequentist 1 -method expected -pheno chd -hwe -log $i.filterMAF0005INFO05.gatk.snptest.log &
 done
+
+for i in {1.12} ; do 
+snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ../sampleinfo.snptest.sample -filetype vcf  -genotype_field GP -o $i.filterMAF0005INFO05.gatk.snptest.out -frequentist 1 -method expected -pheno chd -cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 -hwe -log $i.filterMAF0005INFO05.gatk.snptest.log &
+done
+
 
 i="X"
 zcat $i.filterMAF0005INFO05.gatk.vcf.gz | awk 'NR!=8' | bgzip -c /dev/stdin > $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ;
-snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ../sampleinfo.snptest.sample -filetype vcf  -genotype_field GP -o $i.filterMAF0005INFO05.gatk.snptest.out \
+
+## newml seem not support GP; all results is NA
+snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ../sampleinfo.snptest.sample -filetype vcf  -genotype_field GP -o $i.filterMAF0005INFO05.gatk.snptest.newmlonsex.out \
 -method newml \
 -frequentist 1 \
 -pheno chd \
 -stratify_on sex \
--cov_names sex \
--hwe -log $i.filterMAF0005INFO05.gatk.snptest.log &
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log $i.filterMAF0005INFO05.gatk.snptest.newmlonsex.log &
+
+SNP1 rs1 1000 A C 1 0 0 1 0 0
+zcat $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz | awk -F'\t' '$1!~/#/{ printf "%s %s %s %s %s",$3,$3,$2,$4,$5;
+     for(i=10;i<=12;i++){ 
+        a=gensub(".*:","","g",$i);print a;$i=gsub(","," ",a);
+     } 
+     printf "\n" }' | less
+
+zcat X.filterMAF0005INFO05.bcftools.gen.gz | sed -e 's/nan/0.00/g' |  snptest_v2.5.4-beta2 -data /dev/stdin ../sampleinfo.snptest.sample -o X.filterMAF0005INFO05.bcftools.NEWMLonSEX.out \
+-method newml \
+-frequentist 1 \
+-pheno chd \
+-stratify_on sex \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log X.filterMAF0005INFO05.bcftools.NEWMLonSEX.out &
 
 
 ```
