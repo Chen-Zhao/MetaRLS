@@ -322,8 +322,7 @@ tabix $i.vcf.gz &
 done;
 
 for i in {1..22} ; do  
-zcat $i.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.5 ) ' | cut -f 3 | grep -P '^rs' > $i.filterMAF0005I
-NFO05.snplist & 
+zcat $i.vcf.gz | cut -f 1-10 | vcffilter -f ' (( RefPanelAF > 0.005 ) & ( RefPanelAF < 0.995 )) & ( INFO > 0.5 ) ' | cut -f 3 | grep -P '^rs' > $i.filterMAF0005INFO05.snplist & 
 done
 
 for i in {9..12} ; do 
@@ -349,6 +348,24 @@ paste -d ' ' sampleinfo.snptest.pheno sampleinfo.snptest.mds >> sampleinfo.snpte
 snptest_v2.5.4-beta2 -data test.snptest.vcf.gz sampleinfo.snptest.sample -o test.snptest.out  -genotype_field GP -frequentist 1 -method expected -pheno chd -hwe -log test.snptest.log
 
 grep alternate_ids test.snptest.out | tr ' ' '\n' | awk '{print NR,$0}'
+
+## real run in imputecathy.vcfs
+
+for i in {1..12}; do 
+zcat $i.filterMAF0005INFO05.gatk.vcf.gz | awk 'NR!=8' | bgzip -c /dev/stdin > $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ;
+snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ../sampleinfo.snptest.sample -filetype vcf  -genotype_field GP -o $i.filterMAF0005INFO05.gatk.snptest.out -frequentist 1 -method expected -pheno chd -hwe -log $i.filterMAF0005INFO05.gatk.snptest.log &
+done
+
+i="X"
+zcat $i.filterMAF0005INFO05.gatk.vcf.gz | awk 'NR!=8' | bgzip -c /dev/stdin > $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ;
+snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.gatk.rmdupAC.vcf.gz ../sampleinfo.snptest.sample -filetype vcf  -genotype_field GP -o $i.filterMAF0005INFO05.gatk.snptest.out \
+-method newml \
+-frequentist 1 \
+-pheno chd \
+-stratify_on sex \
+-cov_names sex \
+-hwe -log $i.filterMAF0005INFO05.gatk.snptest.log &
+
 
 ```
 
