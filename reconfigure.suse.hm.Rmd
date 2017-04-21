@@ -13,32 +13,77 @@ wget http://download.savannah.gnu.org/releases/lzip/lzip-1.18.tar.gz
 #tar configure make install
 wget http://isl.gforge.inria.fr/isl-0.18.tar.gz
 
+## need old version; isl_band_member_is_zero_distance removed from 0.12
+./configure --prefix=/home/ing/chen.zhao/usr/versions/isl/isl-0.11
+
+
 wget https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh
 
 wget https://launchpad.net/bzrtools/stable/2.6.0/+download/bzrtools-2.6.0.tar.gz
 wget https://launchpad.net/bzr/2.7/2.7.0/+download/bzr-2.7.0.tar.gz
 
+wget https://www.bastoul.net/cloog/pages/download/count.php3?url=./cloog-0.18.4.tar.gz
+# LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/lib/:/home/ing/chen.zhao/usr/gsrc/lib/  ./configure --prefix=/home/ing/chen.zhao/usr/
+wget https://www.bastoul.net/cloog/pages/download/cloog-0.18.0.tar.gz
+# LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/:/home/ing/chen.zhao/usr/gsrc/lib/  ./configure --prefix=/home/ing/chen.zhao/usr/versions/cloog/cloog-0.18.0
+wget https://www.bastoul.net/cloog/pages/download/cloog-0.17.0.tar.gz
+# LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/:/home/ing/chen.zhao/usr/gsrc/lib/  ./configure --prefix=/home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0
+wget http://ftpmirror.gnu.org/libtool/libtool-2.4.6.tar.gz
+./configure --prefix=/home/ing/chen.zhao/usr/
+
 mkdir GSRC
 cd ~/usr/src/GSRC
-bzr heads --tips bzr://bzr.savannah.gnu.org/gsrc
 
 bzr checkout bzr://bzr.savannah.gnu.org/gsrc/trunk/ gsrc
-cd gsrc/
+cd ~/usr/src/GSRC/gsrc
 ./bootstrap                       # to create the configure script
-./configure --prefix=$HOME/usr    # --prefix is directory to install the packages
+./configure --prefix=/home/ing/chen.zhao/usr/gsrc/    # --prefix is directory to install the packages
 bash ./setup.sh    
 
-source ~/usr/bin/enable.sh
-source ~/usr/bin/enable.gnat.sh
-
-vi pkg/gnu/gcc/Makefile
-gcc version as 4.9.4
-
-make -j 8  -C pkg/gnu/gcc
-
+#source ~/usr/bin/enable.sh
+#source ~/usr/bin/enable.gnat.sh
 
 make -C pkg/gnu/hello
 make -C pkg/gnu/hello install
+
+
+make -j 8  -C pkg/gnu/binutils
+make -j 8  -C pkg/gnu/binutils install
+
+vi pkg/gnu/gcc/Makefile
+gcc version as 4.9.4
+vi pkg/gnu/gcc/config.mk
+make -j 8  -C pkg/gnu/gcc
+
+sha256sum ./pkg/gnu/gcc/download/gcc-4.9.4.tar.bz2 
+sha256sum ./pkg/gnu/gcc/download/gcc-4.9.4.tar.bz2.sig
+
+echo -e '6c11d292cd01b294f9f84c9a59c230d80e9e4a47e5c6355f046bb36d4f358092  download/gcc-4.9.4.tar.bz2' >> ./pkg/gnu/gcc/sha256sums
+echo -e '0071e901d8706add63ad0d3a592e012eef2eadbd84b5b858e43ff62dd119328a  download/gcc-4.9.4.tar.bz2.sig' >> ./pkg/gnu/gcc/sha256sums
+
+export PATH=/home/ing/chen.zhao/usr/bin:$PATH
+export PATH=/home/ing/chen.zhao/usr/gnat/bin:$PATH
+export PATH=/home/ing/chen.zhao/usr/gsrc/bin:$PATH
+
+CFLAGS=" -L/home/ing/chen.zhao/usr/lib " make -j 8 -C pkg/gnu/gcc
+
+CLOOGLIBS = /home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0/lib/libcloog-isl.a /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  -L/home/ing/chen.zhao/usr/gnat/lib/ -lgnat_util -L/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ -lgnat-2016  
+
+vi /home/ing/chen.zhao/usr/src/GSRC/gsrc/pkg/gnu/gcc/work/gcc-4.9.4.build/gcc/Makefile
+
+rm libbackend.a
+add ~/usr/lib/libisl.a to 
+ ar rc libbackend.a 
+ranlib  libbackend.a
+
+add /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  /home/ing/chen.zhao/usr/versions/cloog/cloog-0.18.0/lib/libcloog-isl.a to 
+g++  -o cc1  
+add /home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0/lib/libcloog-isl.a /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  -L/home/ing/chen.zhao/usr/gnat/lib/ -lgnat_util -L/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ -lgnat-2016  
+
+#### good to go 
+
+make -j 8  -C pkg/gnu/gcc
+
 
 
 wget https://github.com/sclorg/scl-utils/archive/scl-1.zip
