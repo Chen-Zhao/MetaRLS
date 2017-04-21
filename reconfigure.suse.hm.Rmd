@@ -30,6 +30,8 @@ wget https://www.bastoul.net/cloog/pages/download/cloog-0.17.0.tar.gz
 # LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/:/home/ing/chen.zhao/usr/gsrc/lib/  ./configure --prefix=/home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0
 wget http://ftpmirror.gnu.org/libtool/libtool-2.4.6.tar.gz
 ./configure --prefix=/home/ing/chen.zhao/usr/
+wget https://github.com/GaloisInc/libdl/archive/master.zip
+
 
 mkdir GSRC
 cd ~/usr/src/GSRC
@@ -67,14 +69,22 @@ export PATH=/home/ing/chen.zhao/usr/gsrc/bin:$PATH
 
 CFLAGS=" -L/home/ing/chen.zhao/usr/lib " make -j 8 -C pkg/gnu/gcc
 
-CLOOGLIBS = /home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0/lib/libcloog-isl.a /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  -L/home/ing/chen.zhao/usr/gnat/lib/ -lgnat_util -L/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ -lgnat-2016  
+CLOOGLIBS = /home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0/lib/libcloog-isl.a /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  -L/home/ing/chen.zhao/usr/gnat/lib/ -lgnat_util -L/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ -lgnat-2016  -L/home/ing/chen.zhao/usr/gnat/lib64/ -lgcc_s
 
 vi /home/ing/chen.zhao/usr/src/GSRC/gsrc/pkg/gnu/gcc/work/gcc-4.9.4.build/gcc/Makefile
 
-rm libbackend.a
-add ~/usr/lib/libisl.a to 
- ar rc libbackend.a 
-ranlib  libbackend.a
+#CFLAGS=" -L/home/ing/chen.zhao/usr/lib -L/home/ing/chen.zhao/usr/gnat/lib64/ " 
+make -j 8 -C pkg/gnu/gcc
+LDFLAGS= -static-libstdc++ -static-libgcc 
+CFLAGS= -g -L/home/ing/chen.zhao/usr/gsrc/lib /home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0/lib/libcloog-isl.a /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  -L/home/ing/chen.zhao/usr/gnat/lib/ -lgnat_util -L/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ -lgnat-2016  -L/home/ing/chen.zhao/usr/gnat/lib64/ -lgcc_s -ldl
+CXXFLAGS= -g -L/home/ing/chen.zhao/usr/gsrc/lib /home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0/lib/libcloog-isl.a /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  -L/home/ing/chen.zhao/usr/gnat/lib/ -lgnat_util -L/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ -lgnat-2016  -L/home/ing/chen.zhao/usr/gnat/lib64/ -lgcc_s -ldl
+
+## ./xgcc error
+LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/gnat/lib/:/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ make -j 8 -C pkg/gnu/gcc
+
+### 4.9.4 failed 
+
+try 5.4.0
 
 add /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  /home/ing/chen.zhao/usr/versions/cloog/cloog-0.18.0/lib/libcloog-isl.a to 
 g++  -o cc1  
