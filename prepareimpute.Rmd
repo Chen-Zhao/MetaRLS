@@ -176,7 +176,7 @@ cd /home/chenzhao/globusshare/imputecathy10k100gQC.vcfs
 
 rm imputechrensembl.test.norm.pred.vcf
 for i in {1..22}; do
-zcat $i.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' >> imputechrensembl.test.norm.pred.vcf.$i ; 
+zcat $i.vcf.gz | extractbyquery.pl ../imputechrensembl.test.norm.true.vcf 3 /dev/stdin 3 | grep -v '#' > imputechrensembl.test.norm.pred.vcf.$i ; 
 done;
 
 for i in {1..22}; do
@@ -264,13 +264,13 @@ for i in {1..22} X ; do
 bcftools view -Ou -i 'INFO>0.7 & RefPanelAF>0.005 & RefPanelAF<0.995' $i.vcf.gz | bcftools convert --tag GP -g $i.filterMAF0005INFO05.bcftools &
 done
 
-for i in {1..22} ; do 
-snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.bcftools.gen.gz ../sampleinfo.snptest.sample -o $i.filterMAF0005INFO05.bcftools.NEWMLonSEX.out \
+for i in {13..22} ; do 
+snptest_v2.5.4-beta2 -data $i.filterMAF0005INFO05.bcftools.gen.gz ../sampleinfo.snptest.sample -o $i.filterMAF0005INFO05.bcftools.expacted.out \
 -method expected \
 -frequentist 1 \
 -pheno chd \
 -cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
--hwe -log $i.filterMAF0005INFO05.bcftools.NEWMLonSEX.out &
+-hwe -log $i.filterMAF0005INFO05.bcftools.expacted.log &
 done
 
 
@@ -280,7 +280,7 @@ zcat X.filterMAF0005INFO05.bcftools.gen.gz | sed -e 's/nan/0.00/g' |  snptest_v2
 -pheno chd \
 -stratify_on sex \
 -cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
--hwe -log X.filterMAF0005INFO05.bcftools.NEWMLonSEX.out &
+-hwe -log X.filterMAF0005INFO05.bcftools.NEWMLonSEX.log &
 
 
 ```
