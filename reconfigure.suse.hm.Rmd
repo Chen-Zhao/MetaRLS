@@ -82,13 +82,21 @@ CXXFLAGS= -g -L/home/ing/chen.zhao/usr/gsrc/lib /home/ing/chen.zhao/usr/versions
 ## ./xgcc error
 LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/gnat/lib/:/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ make -j 8 -C pkg/gnu/gcc
 
-### 4.9.4 failed 
+# make in build dir
+# make install
+
+### 4.9.4 success 
 
 try 5.4.0
 
 add /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  /home/ing/chen.zhao/usr/versions/cloog/cloog-0.18.0/lib/libcloog-isl.a to 
 g++  -o cc1  
 add /home/ing/chen.zhao/usr/versions/cloog/cloog-0.17.0/lib/libcloog-isl.a /home/ing/chen.zhao/usr/versions/isl/isl-0.11/lib/libisl.a  -L/home/ing/chen.zhao/usr/gnat/lib/ -lgnat_util -L/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/ -lgnat-2016  
+
+
+wget http://releases.llvm.org/4.0.0/llvm-4.0.0.src.tar.xz
+tar xvpf llvm-4.0.0.src.tar.xz
+
 
 #### good to go 
 
