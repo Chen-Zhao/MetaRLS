@@ -285,6 +285,69 @@ zcat X.filterMAF0005INFO05.bcftools.gen.gz | sed -e 's/nan/0.00/g' |  snptest_v2
 
 ```
 
+## vcf bcftools filter and snptest subgroup
+
+```{r,eval=F}
+
+cd /home/chenzhao/globusshare/imputecathy.vcfs
+
+## slower than vcffilter and gatk; 
+
+for i in {1..22} X ; do 
+bcftools view -Ou -i 'INFO>0.7 & RefPanelAF>0.001 & RefPanelAF<0.999' $i.vcf.gz | bcftools convert --tag GP -g $i.filterMAF0001INFO07.bcftools &
+done
+
+### split 20000 per line
+
+i=3
+
+zcat $i.filterMAF0001INFO07.bcftools.gen.gz | split -d -l 20000 /dev/stdin $i.filterMAF0001INFO07.bcftools.chunk20k.
+
+for ii in $i.filterMAF0001INFO07.bcftools.chunk20k.* ; do 
+gzip $ii; mv $ii.gz $ii.gen.gz ; 
+done
+
+for i in {13..22} ; do 
+snptest_v2.5.4-beta2 -data $i.filterMAF0001INFO07.bcftools.gen.gz ../subgroup_sampleinfo.snptest.sample \
+-exclude_samples ../snptest.removed.sample \
+-o $i.filterMAF0001INFO07.bcftools.newml.subgroup.out \
+-method newml \
+-hwe \
+-chunk 1000 \
+-frequentist 1 \
+-pheno chd \
+-baseline_phenotype control \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log $i.filterMAF0001INFO07.bcftools.newml.subgroup.log &
+done
+
+for i in 7.filterMAF0001INFO07.bcftools.chunk20k.*.gen.gz ; do 
+snptest_v2.5.4-beta2 -data $i ../subgroup_sampleinfo.snptest.sample \
+-exclude_samples ../snptest.removed.sample \
+-o $i.newml.subgroup.out \
+-method newml \
+-hwe \
+-chunk 1000 \
+-frequentist 1 \
+-pheno chd \
+-baseline_phenotype control \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log $i.newml.subgroup.log &
+done
+
+
+zcat X.filterMAF0005INFO05.bcftools.gen.gz | sed -e 's/nan/0.00/g' |  snptest_v2.5.4-beta2 -data /dev/stdin ../sampleinfo.snptest.sample -o X.filterMAF0005INFO05.bcftools.NEWMLonSEX.out \
+-method newml \
+-frequentist 1 \
+-pheno chd \
+-stratify_on sex \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log X.filterMAF0005INFO05.bcftools.NEWMLonSEX.log &
+
+
+```
+
+
 ## vcf filter old 
 
 following old code; new, use bcftools;
