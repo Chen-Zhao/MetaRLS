@@ -336,6 +336,134 @@ snptest_v2.5.4-beta2 -data $i ../subgroup_sampleinfo.snptest.sample \
 done
 
 
+## newml failed converge; try expacted
+
+# 33703175_A_G
+zcat 12.filterMAF0001INFO07.bcftools.chunk20k.06.gen.gz | grep  12:3370 | gzip -c - > test.chr12.gen.gz
+
+i=test.chr12.gen.gz
+snptest_v2.5.4-beta2 -data $i ../subgroup_sampleinfo.snptest.sample \
+-exclude_samples ../snptest.removed.sample \
+-o $i.newml.subgroup.out \
+-method newml \
+-hwe \
+-chunk 1000 \
+-frequentist 1 \
+-pheno chd \
+-baseline_phenotype control \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log $i.newml.subgroup.log
+
+# low info case8; remove case8
+grep case8 ../subgroup_sampleinfo.snptest.sample | cut -d ' ' -f 1 | cat ../snptest.removed.sample  - | sort | uniq > test.chr12.removecase8.samples
+
+snptest_v2.5.4-beta2 -data $i ../subgroup_sampleinfo.snptest.sample \
+-exclude_samples test.chr12.removecase8.samples \
+-o $i.newml.subgroup.out \
+-method newml \
+-hwe \
+-chunk 1000 \
+-frequentist 1 \
+-pheno chd \
+-baseline_phenotype control \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log $i.newml.subgroup.log
+
+grep -v -P 'control|case1' ../subgroup_sampleinfo.snptest.sample | cut -d ' ' -f 1 | sort | uniq > test.chr12.case1toremove.samples
+grep -v -P 'control|case3' ../subgroup_sampleinfo.snptest.sample | cut -d ' ' -f 1 | sort | uniq > test.chr12.case3toremove.samples
+grep -v -P 'control|case4' ../subgroup_sampleinfo.snptest.sample | cut -d ' ' -f 1 | sort | uniq > test.chr12.case4toremove.samples
+grep -v -P 'control|case6' ../subgroup_sampleinfo.snptest.sample | cut -d ' ' -f 1 | sort | uniq > test.chr12.case6toremove.samples
+grep -v -P 'control|case8' ../subgroup_sampleinfo.snptest.sample | cut -d ' ' -f 1 | sort | uniq > test.chr12.case8toremove.samples
+
+i=test.chr12.gen.gz
+
+for j in test.chr12.case*remove.samples ; do \
+snptest_v2.5.4-beta2 -data $i ../sampleinfo.snptest.sample \
+-exclude_samples $j \
+-o $i.$j.expect.subgroup.out \
+-method expected \
+-hwe \
+-chunk 1000 \
+-frequentist 1 \
+-pheno chd \
+-cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 \
+-hwe -log $i.$j.newml.subgroup.log &
+done
+
+grep 33703175_A_G test.chr12.gen.gz.test.chr12.case*.out | cut -f 46 -d ' ' 
+
+## LOW INFO IN CASE8
+case1: 0.686944
+case3: 0.822949
+case4: 0.921115
+case6: 0.878812
+case8: 0.319177
+control: 0.927919
+## pvalue in newml multinominal logistic regression
+case1: "0.00112232"
+case3: "0.06372"
+case4: "0.112187"
+case6: "0.0681832"
+case8: NA
+# pvalue in newml logistic regression
+case1: 3.34069e-06
+case3: 0.0345612
+case4: 0.0445319
+case6: 0.0197685
+case8: NA
+# pvalue in expected logistic regression
+case1: 5.87923e-06
+case3: 0.0395234
+case4: 0.043512
+case6: 0.0183983
+case8: 1.54607e-05
+
+################ check dosage
+
+R
+
+d <- read.table(pipe("zcat test.chr12.gen.gz | grep 33703175_A_G "),sep=" ")
+dose <- as.numeric(d[1,-(1:5)])
+dose_alt <- dose[1:length(dose)%%3==2]/2+dose[1:length(dose)%%3==0]
+sample <- read.table("../subgroup_sampleinfo.snptest.sample",sep=" ",header=F,skip=2)
+dat <- data.frame(dose=dose_alt,pheno=sample[,5],sample[,c(4,6:15)])
+colnames(dat) <- c("dose","pheno","sex",paste("mds",1:10,sep="_"))
+boxplot(dose~pheno,data=dat,las=3)
+dat$chd <- rep(1,nrow(dat))
+dat$chd[dat$pheno=="control"] <- 0
+lgfit <- glm(chd~dose+sex+mds_1+mds_2+mds_3+mds_4+mds_5+mds_6+mds_7+mds_8+mds_9+mds_10,data=dat,family=binomial(logit))
+summary(lgfit)
+
+require(mgcv)
+require(foreign)
+require(nnet)
+require(ggplot2)
+require(reshape2)
+
+
+ml <- dat
+ml$pheno2 <- relevel(ml$pheno, ref = "control")
+
+test <- multinom(pheno2 ~ dose+sex, data = ml)
+summary(test)
+z <- summary(test)$coefficients/summary(test)$standard.errors
+z
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+
+
+test <- multinom(pheno2 ~ dose+sex+mds_1+mds_2+mds_3+mds_4+mds_5+mds_6+mds_7+mds_8+mds_9+mds_10, data = ml)
+summary(test)
+z <- summary(test)$coefficients/summary(test)$standard.errors
+z
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+
+################
+
+
+
+
 zcat X.filterMAF0005INFO05.bcftools.gen.gz | sed -e 's/nan/0.00/g' |  snptest_v2.5.4-beta2 -data /dev/stdin ../sampleinfo.snptest.sample -o X.filterMAF0005INFO05.bcftools.NEWMLonSEX.out \
 -method newml \
 -frequentist 1 \
