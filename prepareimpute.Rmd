@@ -472,6 +472,16 @@ sapply(c(445,270,138,146,205),function(x){
 sim_chi_n1n2(x,3554,3,0.02)$p.value
 })
 
+#### check inherited pattern
+
+i=12.filterMAF0001INFO07.bcftools.chunk20k.06.gen.gz
+snptest_v2.5.4-beta2 -data $i ../sampleinfo.snptest.sample -o $i.expected.recessive.out -method expected -hwe -frequentist 3 -pheno chd -cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10
+snptest_v2.5.4-beta2 -data $i ../sampleinfo.snptest.sample -o $i.expected.dominant.out -method expected -hwe -frequentist 2 -pheno chd -cov_names sex mds_1 mds_2 mds_3 mds_4 mds_5 mds_6 mds_7 mds_8 mds_9 mds_10 &
+
+
+grep 12:31452750_A_G $i.expected.recessive.out 
+grep 12:31452750_A_G $i.expected.dominant.out
+
 
 
 
