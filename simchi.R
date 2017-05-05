@@ -2,6 +2,10 @@ sim_fisher <- function(n,e,p){n=round(n/2); a=n*p*e/(1-p+p*e);b=n-a;c=n*p;d=n*(1
 sim_fisher(1000,e=1.5,p=0.1)
 
 sim_chi <- function(n,e,p){n=round(n/2);  a=n*p*e/(1-p+p*e);b=n-a;c=n*p;d=n*(1-p); d =cbind(c(a,b),c(c,d)); chisq.test(d); }
+
+sim_chi_n1n2 <- function(case,control,e,p){a=case*p*e/(1-p+p*e);b=case-a;c=control*p;d=control*(1-p); d =cbind(c(a,b),c(c,d)); chisq.test(d); }
+
+
 p.value <- sapply(c(100,1000,10000,100000,300000),function(n,e,p){
    sim_chi(n,e,p)$p.value
 },e=1.2,p=0.1)
