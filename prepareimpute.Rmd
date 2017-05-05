@@ -461,8 +461,21 @@ p
 
 ################
 
+##### expect pvalue
+
+sim_chi_n1n2 <- function(case,control,e,p){a=case*p*e/(1-p+p*e);b=case-a;c=control*p;d=control*(1-p); d =cbind(c(a,b),c(c,d)); chisq.test(d); }
+
+d<- read.table("../subgroup_sampleinfo.snptest.sample",header=T)
+table(d[,5])
+
+sapply(c(445,270,138,146,205),function(x){
+sim_chi_n1n2(x,3554,3,0.02)$p.value
+})
 
 
+
+
+#####
 
 zcat X.filterMAF0005INFO05.bcftools.gen.gz | sed -e 's/nan/0.00/g' |  snptest_v2.5.4-beta2 -data /dev/stdin ../sampleinfo.snptest.sample -o X.filterMAF0005INFO05.bcftools.NEWMLonSEX.out \
 -method newml \
