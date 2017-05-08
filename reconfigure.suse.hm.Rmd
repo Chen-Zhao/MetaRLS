@@ -1,3 +1,30 @@
+
+# best gsrc
+
+```{r,eval=F}
+
+export PATH=/home/ing/chen.zhao/usr/gnat/bin:/home/ing/chen.zhao/usr/bin:$PATH
+which gcc
+export INCLUDE_PATH=/home/ing/chen.zhao/usr/gnat/include:/home/ing/chen.zhao/usr/gsrc/gcc6/include/:$INCLUDE_PATH
+export C_INCLUDE_PATH=/home/ing/chen.zhao/usr/gnat/include:/home/ing/chen.zhao/usr/gsrc/gcc6/include/:$INCLUDE_PATH
+export LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/gnat/lib/:/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/
+
+vi pkg/gnu/gcc/Makefile
+add -I
+change GARVERSION
+
+vi pkg/gnu/gcc/config.mk
+--disable-multiarch \
+--disble-multilib  \
+
+make -C pkg/gnu/gcc/
+sha256sum /home/ing/chen.zhao/usr/gsrc/gcc6/gsrc/pkg/gnu/gcc/download/gcc-6.3.0.tar.bz2
+vi /home/ing/chen.zhao/usr/gsrc/gcc6/gsrc/pkg/gnu/gcc/sha256sums
+make -C pkg/gnu/gcc/
+
+
+```
+
 # configure scl in suse; not work!!
 
 all start from gcc
