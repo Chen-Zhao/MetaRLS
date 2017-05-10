@@ -261,6 +261,33 @@ gcc/
 
 ```
 
+## compile R
+
+```{r,eval=F}
+
+wget http://ftp.fau.de/ctan/systems/texlive/Source/texlive-20160523b-source.tar.xz
+tar Jxf texlive-20160523b-source.tar.xz
+cd texlive-20160523-source/
+./configure --prefix=/home/ing/chen.zhao/usr/ --enable-build-in-source-tree
+make -j 8
+make install
+cd ..
+wget ftp://ftp.mpi-sb.mpg.de/pub/tex/mirror/ftp.dante.de/pub/tex/fonts/inconsolata.zip
+unzip inconsolata.zip
+cd inconsolata
+
+cp -Rfp * ~/usr/texmf-dist/fonts/
+echo Map zi4.map >>  ~/usr/texmf-dist/web2c/updmap.cfg
+
+export TEXMFHOME=~/usr/texmf-dist
+export TEXMFCONFIG=~/usr/texmf-dist/web2c
+updmap --enable Map zi4.map
+mktexlsr
+
+
+```
+
+
 # configure scl in suse; not work!!
 
 all start from gcc
