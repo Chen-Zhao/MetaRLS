@@ -1,6 +1,25 @@
 
 install gcc gsrc gcc6 and gcc7 in suse 11
 
+# enable
+
+```{r,eval=F}
+
+vi ~/bin/enablegcc710.sh
+chmod 755 ~/bin/enablegcc710.sh
+
+#!/bin/bash -l
+export LD_PRELOAD=" /home/ing/chen.zhao/usr/gsrc/gcc7/lib64/libstdc++.so.6.0.23 /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libgsl.so.19.3.0 "
+export LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/gsrc/gcc7/lib64:/home/ing/chen.zhao/usr/gsrc/gcc7/lib
+export PATH=/home/ing/chen.zhao/usr/gsrc/gcc7/bin:/home/ing/chen.zhao/usr/bin:$PATH
+export INCLUDE=/home/ing/chen.zhao/usr/gsrc/gcc7/include
+export PKG_CONFIG_PATH=/home/ing/chen.zhao/usr/gsrc/gcc7/lib/pkgconfig:$PKG_CONFIG_PATH
+export MANPATH=/home/ing/chen.zhao/usr/gsrc/gcc7/share/man:$MANPATH
+export INFOPATH=/home/ing/chen.zhao/usr/gsrc/gcc7/share/info:$INFOPATH
+
+
+```
+
 # best gsrc perfect configure without ada
 
 ```{r,eval=F}
