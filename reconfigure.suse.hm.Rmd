@@ -17,6 +17,8 @@ export PKG_CONFIG_PATH=/home/ing/chen.zhao/usr/gsrc/gcc7/lib/pkgconfig:$PKG_CONF
 export MANPATH=/home/ing/chen.zhao/usr/gsrc/gcc7/share/man:$MANPATH
 export INFOPATH=/home/ing/chen.zhao/usr/gsrc/gcc7/share/info:$INFOPATH
 
+exec $SHELL -i
+
 
 ```
 
