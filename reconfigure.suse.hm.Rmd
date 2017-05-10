@@ -1,26 +1,238 @@
 
-# best gsrc
+install gcc gsrc gcc6 and gcc7 in suse 11
+
+# best gsrc perfect configure without ada
 
 ```{r,eval=F}
 
-export PATH=/home/ing/chen.zhao/usr/gnat/bin:/home/ing/chen.zhao/usr/bin:$PATH
-which gcc
-export INCLUDE_PATH=/home/ing/chen.zhao/usr/gnat/include:/home/ing/chen.zhao/usr/gsrc/gcc6/include/:$INCLUDE_PATH
-export C_INCLUDE_PATH=/home/ing/chen.zhao/usr/gnat/include:/home/ing/chen.zhao/usr/gsrc/gcc6/include/:$INCLUDE_PATH
-export LD_LIBRARY_PATH=/home/ing/chen.zhao/usr/gnat/lib/:/home/ing/chen.zhao/usr/gnat/lib/gcc/x86_64-pc-linux-gnu/4.9.4/rts-native/adalib/
+# gsrc gcc6
 
-vi pkg/gnu/gcc/Makefile
-add -I
-change GARVERSION
+unset LIBRARY_PATH CPATH C_INCLUDE_PATH PKG_CONFIG_PATH CPLUS_INCLUDE_PATH INCLUDE
+
+export PATH=/usr/bin/:/home/ing/chen.zhao/usr/gnat/bin:/home/ing/chen.zhao/usr/bin:$PATH
+
+cd ~/usr/gsrc/gcc6/gsrc
+vi pkg/gnu/binutils/config.mk
+--enable-gold
+make -C pkg/gnu/binutils
+make -C pkg/gnu/binutils install
+export PATH=/home/ing/chen.zhao/usr/gsrc/gcc6/bin:$PATH
+
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.28.tar.gz
+tar xzf binutils-2.28.tar.gz
+cd binutils-2.28
+./configure --prefix=/home/ing/chen.zhao/usr/gsrc/gcc6 --enable-gold
+make -j 8 && make install
+cd ..
+
+tar xzf ~/usr/src/cloog-0.18.0.tar.gz
+wget http://isl.gforge.inria.fr/isl-0.16.tar.gz
+tar xzf isl-0.16.tar.gz
+cd isl-0.16
+./configure --prefix=/home/ing/chen.zhao/usr/gsrc/gcc6
+make -j 8 && make install
+cd ../cloog-0.18.0/
+./configure --prefix=/home/ing/chen.zhao/usr/gsrc/gcc6 --with-isl=/home/ing/chen.zhao/usr/gsrc/gcc6
+make -j 8 && make install
+cd ..
+
+tar xJf ~/usr/src/gsrc/gcc5/gsrc/pkg/gnu/mpfr/download/mpfr-3.1.5.tar.xz
+tar xf  ~/usr/src/gsrc/gcc5/gsrc/pkg/gnu/gmp/download/gmp-6.1.2.tar
+tar xzf ~/usr/src/gsrc/gcc5/gsrc/pkg/gnu/mpc/download/mpc-1.0.3.tar.gz
+
+cd gmp-6.1.2
+./configure CFLAGS=-fPIC --enable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/gsrc/gcc6
+make -j 8 && make install
+cd ../mpfr-3.1.5/
+./configure CFLAGS=-fPIC --disable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/gsrc/gcc6 --with-gmp=/home/ing/chen.zhao/usr/gsrc/gcc6
+make -j 8 && make install
+cd ../mpc-1.0.3/
+./configure CFLAGS=-fPIC --disable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/gsrc/gcc6 --with-gmp=/home/ing/chen.zhao/usr/gsrc/gcc6 --with-mpfr=/home/ing/chen.zhao/usr/gsrc/gcc6
+make -j 8 && make install
+cd ..
+wget http://www.mr511.de/software/libelf-0.8.13.tar.gz
+tar zxvf libelf-0.8.13.tar.gz
+cd libelf-0.8.13
+./configure CFLAGS=-fPIC --enable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/gsrc/gcc6
+make -j 8 && make install
+cd ..
+
+
+
+wget http://www.mr511.de/software/libelf-0.8.13.tar.gz
+tar zxvf libelf-0.8.13.tar.gz
+cd libelf-0.8.13
+./configure CFLAGS=-fPIC --enable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/versions/gcc-5.4.0
+make -j 8 && make install
+cd ..
 
 vi pkg/gnu/gcc/config.mk
---disable-multiarch \
---disble-multilib  \
 
-make -C pkg/gnu/gcc/
-sha256sum /home/ing/chen.zhao/usr/gsrc/gcc6/gsrc/pkg/gnu/gcc/download/gcc-6.3.0.tar.bz2
-vi /home/ing/chen.zhao/usr/gsrc/gcc6/gsrc/pkg/gnu/gcc/sha256sums
-make -C pkg/gnu/gcc/
+CONFIGURE_OPTS ?= \
+ CFLAGS=-fPIC LD=/home/ing/chen.zhao/usr/gsrc/gcc6/bin/ld \
+--enable-clocale=gnu \
+--enable-cloog-backend=isl \
+--enable-__cxa_atexit \
+--enable-default-pie \
+--enable-gold \
+--enable-ld \
+--enable-gnu-unique-object \
+--enable-gtk-cairo \
+--enable-languages=c,c++,fortran,go,lto,objc,obj-c++ \
+--enable-libmpx \
+--enable-libssp \
+--enable-libstdcxx-debug \
+--enable-libstdcxx-time=yes \
+--enable-linker-build-id \
+--enable-lto \
+--disable-multiarch \
+--disable-multilib  \
+--enable-nls \
+--enable-objc-gc=auto \
+--enable-plugin \
+--enable-shared \
+--enable-threads=posix \
+--with-system-zlib \
+--with-target-system-zlib \
+--with-gmp=/home/ing/chen.zhao/usr/gsrc/gcc6 \
+--with-mpfr=/home/ing/chen.zhao/usr/gsrc/gcc6 \
+--with-mpc=/home/ing/chen.zhao/usr/gsrc/gcc6 \
+--with-libelf=/home/ing/chen.zhao/usr/gsrc/gcc6 \
+--with-isl=/home/ing/chen.zhao/usr/gsrc/gcc6 \
+--with-cloog=/home/ing/chen.zhao/usr/gsrc/gcc6 \
+--with-binutils=/home/ing/chen.zhao/usr/gsrc/gcc6/bin \
+--prefix=/home/ing/chen.zhao/usr/gsrc/gcc6
+
+make -C pkg/gnu/gcc
+make -j 8 -C pkg/gnu/gcc install
+cd /home/ing/chen.zhao/usr/gsrc/gcc6/gsrc/pkg/gnu/gcc
+
+LD_PRELOAD=" /home/ing/chen.zhao/usr/versions/gcc-6.3.0/lib/libisl.so.15.1.0 /home/ing/chen.zhao/usr/versions/gcc-6.3.0/lib/libgmp.so " \
+make -j 8 -C work/gcc-6.3.0.build 
+
+cd  work/gcc-6.3.0.build/
+mkdir boehm-gc
+cd boehm-gc
+../../gcc-6.3.0/boehm-gc/configure
+make -j 8
+cd ../../../
+cd work/gcc-6.3.0/boehm-gc/
+./configure
+cd -
+cd work/gcc-6.3.0.build 
+cp -rf boehm-gc/ x86_64-pc-linux-gnu/
+
+LD_PRELOAD=" /home/ing/chen.zhao/usr/versions/gcc-6.3.0/lib/libisl.so.15.1.0 /home/ing/chen.zhao/usr/versions/gcc-6.3.0/lib/libgmp.so " \
+make -j 8 
+
+
+### gsrc gcc7
+
+
+unset LIBRARY_PATH CPATH C_INCLUDE_PATH PKG_CONFIG_PATH CPLUS_INCLUDE_PATH INCLUDE
+
+export PATH=/usr/bin/:/home/ing/chen.zhao/usr/gnat/bin:/home/ing/chen.zhao/usr/bin:$PATH
+
+cd ~/usr/src/gsrc/gcc7/gsrc
+vi pkg/gnu/binutils/config.mk
+--enable-gold
+make -C pkg/gnu/binutils
+make -C pkg/gnu/binutils install
+export PATH=/home/ing/chen.zhao/usr/gsrc/gcc7/bin:$PATH
+
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.28.tar.gz
+tar xzf binutils-2.28.tar.gz
+cd binutils-2.28
+./configure --prefix=/home/ing/chen.zhao/usr/gsrc/gcc7 --enable-gold
+make -j 8 && make install
+cd ..
+export PATH=/home/ing/chen.zhao/usr/gsrc/gcc7/bin:$PATH
+
+which ld
+
+tar xzf ~/usr/src/cloog-0.18.0.tar.gz
+wget http://isl.gforge.inria.fr/isl-0.16.tar.gz
+tar xzf isl-0.16.tar.gz
+cd isl-0.16
+./configure --prefix=/home/ing/chen.zhao/usr/gsrc/gcc7
+make -j 8 && make install
+cd ../cloog-0.18.0/
+./configure --prefix=/home/ing/chen.zhao/usr/gsrc/gcc7 --with-isl=/home/ing/chen.zhao/usr/gsrc/gcc7
+make -j 8 && make install
+cd ..
+
+tar xJf ~/usr/src/gsrc/gcc5/gsrc/pkg/gnu/mpfr/download/mpfr-3.1.5.tar.xz
+tar xf  ~/usr/src/gsrc/gcc5/gsrc/pkg/gnu/gmp/download/gmp-6.1.2.tar
+tar xzf ~/usr/src/gsrc/gcc5/gsrc/pkg/gnu/mpc/download/mpc-1.0.3.tar.gz
+
+cd gmp-6.1.2
+./configure CFLAGS=-fPIC --enable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/gsrc/gcc7
+make -j 8 && make install
+cd ../mpfr-3.1.5/
+./configure CFLAGS=-fPIC --disable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/gsrc/gcc7 --with-gmp=/home/ing/chen.zhao/usr/gsrc/gcc7
+make -j 8 && make install
+cd ../mpc-1.0.3/
+./configure CFLAGS=-fPIC --disable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/gsrc/gcc7 --with-gmp=/home/ing/chen.zhao/usr/gsrc/gcc7 --with-mpfr=/home/ing/chen.zhao/usr/gsrc/gcc7
+make -j 8 && make install
+cd ..
+wget http://www.mr511.de/software/libelf-0.8.13.tar.gz
+tar zxvf libelf-0.8.13.tar.gz
+cd libelf-0.8.13
+./configure CFLAGS=-fPIC --enable-shared --enable-static --prefix=/home/ing/chen.zhao/usr/gsrc/gcc7
+make -j 8 && make install
+cd ..
+
+
+vi pkg/gnu/gcc/config.mk
+
+CONFIGURE_OPTS ?= \
+ CFLAGS=-fPIC LD=/home/ing/chen.zhao/usr/gsrc/gcc7/bin/ld \
+--enable-clocale=gnu \
+--enable-cloog-backend=isl \
+--enable-__cxa_atexit \
+--enable-default-pie \
+--enable-gold \
+--enable-ld \
+--enable-gnu-unique-object \
+--enable-gtk-cairo \
+--enable-languages=c,c++,fortran,go,lto,objc,obj-c++ \
+--enable-libmpx \
+--enable-libssp \
+--enable-libstdcxx-debug \
+--enable-libstdcxx-time=yes \
+--enable-linker-build-id \
+--enable-lto \
+--disable-multiarch \
+--disable-multilib  \
+--enable-nls \
+--enable-objc-gc=auto \
+--enable-plugin \
+--enable-shared \
+--enable-threads=posix \
+--with-system-zlib \
+--with-target-system-zlib \
+--with-gmp=/home/ing/chen.zhao/usr/gsrc/gcc7 \
+--with-mpfr=/home/ing/chen.zhao/usr/gsrc/gcc7 \
+--with-mpc=/home/ing/chen.zhao/usr/gsrc/gcc7 \
+--with-libelf=/home/ing/chen.zhao/usr/gsrc/gcc7 \
+--with-isl=/home/ing/chen.zhao/usr/gsrc/gcc7 \
+--with-cloog=/home/ing/chen.zhao/usr/gsrc/gcc7 \
+--with-binutils=/home/ing/chen.zhao/usr/gsrc/gcc7/bin \
+--prefix=/home/ing/chen.zhao/usr/gsrc/gcc7
+
+LD_PRELOAD=" /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libisl.so.15.1.0 /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libgmp.so " \
+make -C pkg/gnu/gcc
+
+LD_PRELOAD=" /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libisl.so.15.1.0 /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libgmp.so " \
+make -j 8 -C pkg/gnu/gcc install
+cd pkg/gnu/gcc
+LD_PRELOAD=" /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libisl.so.15.1.0 /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libgmp.so " \
+make -j 8 -C work/gcc-7.1.0.build 
+
+LD_PRELOAD=" /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libisl.so.15.1.0 /home/ing/chen.zhao/usr/gsrc/gcc7/lib/libgmp.so " \
+make -j 8 -C work/gcc-7.1.0.build install
+
+gcc/
 
 
 ```
