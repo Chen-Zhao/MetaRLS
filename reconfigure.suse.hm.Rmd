@@ -19,7 +19,7 @@ export INFOPATH=/home/ing/chen.zhao/usr/gsrc/gcc7/share/info:$INFOPATH
 
 #exec $SHELL -i
 
-vi ~/.bashrc
+vi ~/.profile
 alias enablegcc710='source ~/bin/enablegcc710.sh'
 
 
