@@ -1,0 +1,1037 @@
+---
+title: "02_smrtlink"
+author: "chen"
+date: "8/2/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,eval=F}
+
+for i in 8083 8084 9095 9090 9091 389 9443 8243; do  
+firewall-cmd  --add-port=$i/udp; 
+firewall-cmd  --add-port=$i/tcp; 
+firewall-cmd --permanent --add-port=$i/udp; 
+firewall-cmd --permanent --add-port=$i/tcp;
+done
+
+
+https://myanbin.github.io/post/openldap-in-centos-7.html
+
+vi /etc/hosts
+
+10.35.37.161 server.wks001 ldap
+10.35.37.161 client.wks001 ldap
+
+
+systemctl stop slapd 
+systemctl disable slapd
+yum -y remove openldap-servers openldap-clients  
+rm -rf /var/lib/ldap
+rm -rf /etc/openldap/
+userdel ldap
+
+
+yum reinstall -y openldap-servers openldap-clients openldap.i686 openldap-devel.x86_64
+
+
+cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+chown ldap. /var/lib/ldap/DB_CONFIG
+chown -R ldap. /etc/openldap
+
+yum install openssl
+openssl genrsa -out ssl.key
+openssl req -new -key ssl.key -out ssl.csr
+touch /etc/pki/CA/index.txt
+echo '1000' > /etc/pki/CA/serial
+
+echo 'secretpw' > /etc/openldap/certs/password.txt
+echo 'secretpw12345678' > /etc/openldap/certs/noise.txt
+
+cd /etc/openldap/certs
+
+/bin/rm -rf secmod.db key3.db cert8.db
+certutil -N -d /etc/openldap/certs -f /etc/openldap/certs/password.txt
+certutil -S -s "CN=wks001, O=ING, L=MUC, ST=BAV, C=DE" -n "OpenLDAP Server" -x -t "C,C,C" -1 -2 -5 -d /etc/openldap/certs -f /etc/openldap/certs/password.txt -z /etc/openldap/certs/noise.txt
+certutil -R -s "CN=wks001, O=ING, L=MUC, ST=BAV, C=DE" -n "OpenLDAP Server" -o slapd.req -d /etc/openldap/certs
+certutil -C -i slapd.req -o slapd.crt -d . -c "OpenLDAP Server" -f /etc/openldap/certs/password.txt
+certutil -A -n slapd -i slapd.crt -t "CT,," -d /etc/openldap/certs
+certutil -L -d /etc/openldap/certs
+openssl s_client -connect localhost:636 -showcerts
+
+cd /etc/openldap/
+slappasswd
+123456
+{SSHA}mJm1Xx4oIwBQccKE/p0LUpZR416CYQcg
+
+slapd -d 3 &
+
+chown -R ldap. /var/lib/ldap/
+chown -R ldap.  /etc/openldap/
+# vi /etc/openldap/slapd.conf
+# suffix          "dc=wks001,dc=ing"
+# rootdn          "cn=root,dc=wks001,dc=ing"
+# rootpw {SSHA}mJm1Xx4oIwBQccKE/p0LUpZR416CYQcg
+
+
+# https://myanbin.github.io/post/openldap-in-centos-7.html
+  
+vi chrootpw.ldif
+
+dn: olcDatabase={0}config,cn=config
+changetype: modify
+add: olcRootPW
+olcRootPW: {SSHA}mJm1Xx4oIwBQccKE/p0LUpZR416CYQcg
+
+ldapadd -Y EXTERNAL -H ldapi:/// -f chrootpw.ldif
+
+##
+
+ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/cosine.ldif
+ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/nis.ldif
+ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif
+
+slappasswd
+123456
+{SSHA}HIHzLTy/78Fdir+1hSQzyfh+jzJML9Nn
+
+vim chdomain.ldif
+
+dn: olcDatabase={1}monitor,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth"
+  read by dn.base="cn=smrtlink,dc=wks001,dc=ing" read by * none
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcSuffix
+olcSuffix: dc=wks001,dc=ing
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcRootDN
+olcRootDN: cn=smrtlink,dc=wks001,dc=ing
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+add: olcRootPW
+olcRootPW: {SSHA}HIHzLTy/78Fdir+1hSQzyfh+jzJML9Nn
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+add: olcAccess
+olcAccess: {0}to attrs=userPassword,shadowLastChange by
+  dn="cn=smrtlink,dc=wks001,dc=ing" write by anonymous auth by self write by * none
+olcAccess: {1}to dn.base="" by * read
+olcAccess: {2}to * by dn="cn=smrtlink,dc=wks001,dc=ing" write by * read
+
+ldapmodify -Y EXTERNAL -H ldapi:/// -f chdomain.ldif 
+
+
+vim basedomain.ldif
+# replace to your own domain name for "dc=***,dc=***" section
+dn: dc=wks001,dc=ing
+objectClass: top
+objectClass: dcObject
+objectclass: organization
+o: smrtlink group
+dc: wks001
+
+dn: cn=smrtlink,dc=wks001,dc=ing
+objectClass: organizationalRole
+cn: smrtlink
+
+dn: ou=People,dc=wks001,dc=ing
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Group,dc=wks001,dc=ing
+objectClass: organizationalUnit
+ou: Group
+
+ldapadd -x -D cn=smrtlink,dc=wks001,dc=ing -W -f basedomain.ldif 
+
+slappasswd
+123456
+{SSHA}mCOe5xtfgGXmRtHz/Cn6TtrCbMv3hBVE
+
+
+vi ldapuser.ldif
+# create new
+# replace to your own domain name for "dc=***,dc=***" section
+dn: uid=ada,ou=People,dc=wks001,dc=ing
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: ada
+cn: Ada Catherine
+sn: Catherine
+userPassword: {SSHA}mCOe5xtfgGXmRtHz/Cn6TtrCbMv3hBVE
+loginShell: /bin/bash
+uidNumber: 1000
+gidNumber: 1000
+homeDirectory: /home/users/ada
+
+dn: cn=Secretary,ou=Group,dc=wks001,dc=ing
+objectClass: posixGroup
+cn: Secretary
+gidNumber: 1000
+memberUid: ada
+
+ldapadd -x -D cn=smrtlink,dc=wks001,dc=ing -W -f ldapuser.ldif
+
+ldapsearch -x -b "dc=wks001,dc=ing" -H ldap://127.0.0.1
+
+```
+
+
+```{r,eval=F}
+
+
+export SMRT_USER=chenzhao
+export SMRT_ROOT=/home/softwares/local/smrtlink
+
+su $SMRT_USER
+
+export SMRT_ROOT=/home/softwares/local/smrtlink
+mkdir -p /home/softwares/local/smrtlink
+./smrtlink_5.1.0.26412.run --rootdir $SMRT_ROOT
+
+../local/smrtlink/userdata/config/smrtlink-system-config.json
+grep 
+
+
+for i in 389 8083 8084 9095 9090 9091 9443 8243 ; do 
+firewall-cmd  --add-port=$i/udp
+firewall-cmd  --add-port=$i/tcp
+firewall-cmd --permanent --add-port=$i/udp
+firewall-cmd --permanent --add-port=$i/tcp
+done
+
+$SMRT_ROOT/admin/bin/services-start
+$SMRT_ROOT/admin/bin/services-status
+$SMRT_ROOT/admin/bin/services-stop
+$SMRT_ROOT/admin/bin/smrt_reconfig
+$SMRT_ROOT/admin/bin/services-start
+
+vi $SMRT_ROOT/userdata/config/preset.xml
+max workders 12
+
+https://10.35.37.161:9443/carbon/
+
+pbservice  get-job 17 --port 9091
+pbservice delete-job 19 --port 9091 --force
+
+```
+
+```{r,eval=F}
+
+scm01
+a=1; find /opt/pacbio/userdata/jobs_root/000/000251/tasks/ -iname "ccs.bam.pbi" | while read i ; do cp $i ~/smrtlink_output_2/$i_$a.bam.pbi ; a=$((a+1)) ; done
+a=1; find /opt/pacbio/userdata/jobs_root/000/000251/tasks/ -iname "ccs.bam" | while read i ; do cp $i ~/smrtlink_output_2/$i_$a.bam ; a=$((a+1)) ; done
+
+wks001
+rsync -avP chen.zhao@scm01:~/smrtlink_output_2/ ~/projects/haploseq/03_pacbio/ccs/
+
+cd ~/projects/haploseq/03_pacbio/ccs/
+  
+samtools merge merged.bam [1-9]*.bam
+
+rsync -avP chen.zhao@scm01:/opt/pacbio/userdata/jobs_root/000/000251/tasks/pbcoretools.tasks.bam2fastq_ccs-0/ccs.tar.gz ./
+rsync -avP chen.zhao@scm01:/opt/pacbio/userdata/jobs_root/000/000251/tasks/pbcoretools.tasks.bam2fasta_ccs-0/ccs.tar.gz ./
+
+samtools faidx /home/db/igenome/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/chr2.fa chr2:65000000-69000000 > target.fa
+  
+blasr=/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/smrtcmds/bin/blasr
+$blasr merged.bam /home/db/igenome/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/chr2.fa --bam --out aligned.bam --nproc 6
+
+```
+guess barcode
+
+```{r,eval=F}
+
+awk 'NR%2==0' ccs_pacbio_w0.fasta | cut -b 1-52 | head -n 3000 | sort | uniq -c | sort -k1,1gr | less
+    363 GCAGTCGAACATGTAGCTGACTCAGGTCACCATAGCGACTATCGTGGGTAGT
+    362 GCAGTCGAACATGTAGCTGACTCAGGTCACTCAGACGATGCGTCATGGTAGT
+    356 GCAGTCGAACATGTAGCTGACTCAGGTCACCTGCGTGCTCTACGACGGTAGT
+    347 GCAGTCGAACATGTAGCTGACTCAGGTCACCGAGCACGCGCGTGTGGGTAGT
+     27 CAGTCGAACATGTAGCTGACTCAGGTCACCATAGCGACTATCGTGGGTAGTA
+     17 CAGTCGAACATGTAGCTGACTCAGGTCACTCAGACGATGCGTCATGGTAGTA
+     16 CAGTCGAACATGTAGCTGACTCAGGTCACCGAGCACGCGCGTGTGGGTAGTC
+     16 CAGTCGAACATGTAGCTGACTCAGGTCACTCAGACGATGCGTCATGGTAGTC
+     15 CAGTCGAACATGTAGCTGACTCAGGTCACCATAGCGACTATCGTGGGTAGTC
+     14 CAGTCGAACATGTAGCTGACTCAGGTCACCTGCGTGCTCTACGACGGTAGTA
+     13 CAGTCGAACATGTAGCTGACTCAGGTCACCGAGCACGCGCGTGTGGGTAGTA
+     11 CAGTCGAACATGTAGCTGACTCAGGTCACCATAGCGACTATCGTGGGTAGTG
+     11 CAGTCGAACATGTAGCTGACTCAGGTCACCTGCGTGCTCTACGACGGTAGTT
+awk 'NR%2==0' ccs_pacbio_w0.fasta | cut -b 1-53 | head -n 3000 | sort | uniq -c | sort -k1,1gr | less
+
+vi barcodes.fasta
+>sample_1
+GCAGTCGAACATGTAGCTGACTCAGGTCACCATAGCGACTATCGTGGGTAGT
+>sample_2
+GCAGTCGAACATGTAGCTGACTCAGGTCACTCAGACGATGCGTCATGGTAGT
+>sample_3
+GCAGTCGAACATGTAGCTGACTCAGGTCACCTGCGTGCTCTACGACGGTAGT
+>sample_4
+GCAGTCGAACATGTAGCTGACTCAGGTCACCGAGCACGCGCGTGTGGGTAGT
+
+
+# real INFO
+https://www.pacb.com/wp-content/uploads/RSII_96_barcodes_universal.fasta_.zip
+
+25092 adapter 1
+gcagtcgaacatgtagctgactcaggtcacTCAGACGATGCGTCATggtagT
+52334 adapter 17
+43142 adapter 9
+64074 adapter 26
+
+>lbc1
+GCAGTCGAACATGTAGCTGACTCAGGTCACTCAGACGATGCGTCATGGTAGT
+>lbc1_rc
+GCAGTCGAACATGTAGCTGACTCAGGTCACTCAGACGATGCGTCATGGTAG
+>lbc17
+GCAGTCGAACATGTAGCTGACTCAGGTCACCATAGCGACTATCGTGGGTAGT
+>lbc17_rc
+GCAGTCGAACATGTAGCTGACTCAGGTCACCATAGCGACTATCGTGGGTAG
+>lbc9
+GCAGTCGAACATGTAGCTGACTCAGGTCACCTGCGTGCTCTACGACGGTAGT
+>lbc9_rc
+GCAGTCGAACATGTAGCTGACTCAGGTCACCTGCGTGCTCTACGACGGTAG
+>lbc26
+GCAGTCGAACATGTAGCTGACTCAGGTCACCGAGCACGCGCGTGTGGGTAGT
+>lbc26_rc
+GCAGTCGAACATGTAGCTGACTCAGGTCACCGAGCACGCGCGTGTGGGTAG
+
+vi barcodes.fasta
+
+>lbc1
+GCAGTCGAACATGTAGCTGACTCAGGTCACTCAGACGATGCGTCATGGTAGT
+>lbc17
+GCAGTCGAACATGTAGCTGACTCAGGTCACCATAGCGACTATCGTGGGTAGT
+>lbc9
+GCAGTCGAACATGTAGCTGACTCAGGTCACCTGCGTGCTCTACGACGGTAGT
+>lbc26
+GCAGTCGAACATGTAGCTGACTCAGGTCACCGAGCACGCGCGTGTGGGTAGT
+
+
+lima=/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/smrtcmds/bin/lima
+#lima movie.subreads.bam barcodes.fasta prefix.bam
+#lima --css movie.ccs.bam barcodes.fasta prefix.bam
+
+$lima merged.bam barcodes.fasta samples.bam --no-pbi --same
+
+samtools view samples.bam | cut -f 12- | cut -f 11 | sort | uniq -c | less
+
+for i in {1..4}; do 
+b=$((i-1))
+samtools view -h samples.bam | awk '$1~/@/ || $22==a' "a=bc:B:S,$b,$b" | samtools view -Shb - > sample_$i.bam
+done
+
+blasr=/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/smrtcmds/bin/blasr
+
+
+for i in {1..4} ; do
+$blasr sample_$i.bam /home/db/igenome/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/chr2.fa --bam --out blasr_$i.bam --nproc 6
+done
+
+samtools sort -@ 4 blasr_1.bam blasr_1_sortc
+samtools index blasr_1_sortc.bam
+
+#### try subreads
+
+samtools view -h ../m54141_180729_190621.subreads.bam | head -n 10000 | samtools view -Shb - > test_subreads.bam
+$blasr test_subreads.bam /home/db/igenome/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/chr2.fa --bam --out  test_subreads_aligned.bam --nproc 6
+
+samtools sort -@ 6 test_subreads_aligned.bam test_subreads_aligned_sortc
+samtools index test_subreads_aligned_sortc.bam
+
+#### 
+
+$lima ../m54141_180729_190621.subreads.bam barcodes.fasta subreads_samples.bam --no-pbi --same
+
+for i in {1..4}; do 
+b=$((i-1))
+samtools view -h subreads_samples.bam | awk '$1~/@/ || $22==a' "a=bc:B:S,$b,$b" | samtools view -Shb - > subreads_samples_sample_$i.bam
+done
+
+samtools faidx /home/db/igenome/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/chr2.fa chr2:65700001-69000000
+samtools faidx /home/db/igenome/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/chr2.fa chr2:66600000-66890000 > MEIS1_66600000.fa
+
+echo -e 'chr2\t1\t65000000\nchr2\t70000000\t243199373' > mask.bed
+bedtools maskfasta -fi /home/db/igenome/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/chr2.fa -bed mask.bed -fo chr2.fasta
+
+bedtools maskfasta [OPTIONS] -fi <input FASTA> -bed <BED/GFF/VCF> -fo <output FASTA>
+
+for i in 1 2 3 4 ; do 
+$blasr subreads_samples_sample_$i.bam chr2.fasta --minReadLength 1000 --useQuality --bam --out MEIS1_blasr_subreads_$i.bam --nproc 6
+done
+
+
+for i in 1 2 3 4 ; do 
+$blasr sample_$i.bam chr2.fasta --minReadLength 1000 --useQuality --bam --out MEIS1_blasr_$i.bam --nproc 6
+done
+
+samtools view -hb -q 20 MEIS1_blasr_1.bam | samtools sort -@ 6 -o MEIS1_blasr_sortc_1.bam -
+pbindex MEIS1_blasr_sortc_1.bam
+samtools view -hb -q 20 MEIS1_blasr_subreads_1.bam | samtools sort -@ 6 -o MEIS1_blasr_subreads_sortc_1.bam -
+pbindex MEIS1_blasr_subreads_sortc_1.bam
+samtools index MEIS1_blasr_sortc_1.bam
+samtools index MEIS1_blasr_subreads_sortc_1.bam
+
+for i in 1 2 3 4 ; do 
+{ samtools view -q 20 -H MEIS1_blasr_$i.bam  ; samtools view -q 20 MEIS1_blasr_$i.bam | \
+  awk -F"\t" 'OFS="\t"{nend=0; nstart=0; if($6~/S$/){nend=gensub(/.*[A-Z=]([0-9]+)S$/,"\\1","g",$6)} if($6~/^([0-9]+)S/){nstart=gensub(/^([0-9]+)S/,"\\1","g",$6)} ls=nstart+nend; l=length($10); if((ls/(l+1))<0.5){print $0}}' ; } | samtools view -Shb - | samtools sort -@ 6 -o MEIS1_blasr_sortc_$i.bam - ; 
+samtools index MEIS1_blasr_sortc_$i.bam
+{ samtools view -q 20 -H MEIS1_blasr_subreads_$i.bam  ; samtools view -q 20 MEIS1_blasr_subreads_$i.bam | \
+  awk -F"\t" 'OFS="\t"{nend=0; nstart=0; if($6~/S$/){nend=gensub(/.*[A-Z=]([0-9]+)S$/,"\\1","g",$6)} if($6~/^([0-9]+)S/){nstart=gensub(/^([0-9]+)S/,"\\1","g",$6)} ls=nstart+nend; l=length($10); if((ls/(l+1))<0.5){print $0}}' ; } | samtools view -Shb - |  samtools sort -@ 6 -o MEIS1_blasr_subreads_sortc_$i.bam - ; 
+samtools index MEIS1_blasr_subreads_sortc_$i.bam
+pbindex MEIS1_blasr_sortc_$i.bam
+pbindex MEIS1_blasr_subreads_sortc_$i.bam
+done
+
+
+
+```
+
+mapping ratio and coverage
+
+
+```{r,eval=F}
+
+cp /home/db/igenome/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa ./hg19.fasta
+
+sawriter hg19.fasta.sa hg19.fasta
+
+
+for i in 2 3 4 ; do 
+$blasr sample_$i.bam hg19.fasta --minReadLength 1000 --useQuality --bam --out hg19_blasr_$i.bam --nproc 12 --bestn 3 --sa hg19.fasta.sa
+done
+
+for i in 1 2 3 4 ; do 
+$blasr subreads_samples_sample_$i.bam hg19.fasta --minReadLength 1000 --useQuality --bam --out hg19_blasr_subreads_$i.bam --nproc 16 --bestn 3 --sa hg19.fasta.sa
+done
+
+for i in 1 2 3 4 ; do 
+samtools sort -@ 6 -o hg19_blasr_sortc_$i.bam hg19_blasr_$i.bam ; 
+samtools index hg19_blasr_sortc_$i.bam
+done
+
+https://bioconductor.org/packages/release/bioc/vignettes/TarSeqQC/inst/doc/TarSeqQC-vignette.pdf
+
+echo -e "chr\tstart\tend\tname\tgene" > target.hg19.bed
+echo -e "chr2\t65700001\t69000000\ttargeted\thaplotarget" >> target.hg19.bed
+
+
+R
+library(TarSeqQC)
+library("BiocParallel")
+pdf("hg19_blasr_sortc_1.QC.pdf")
+bedFile<-"target.hg19.bed"
+probeFile <- "OID45968_hg19_04May2018_capture_targets.bed"
+bamFile<-"hg19_blasr_sortc_1.bam"
+fastaFile<-"hg19.fasta"
+BPPARAM<-MulticoreParam(3)
+myPanel<-TargetExperiment(bedFile, bamFile, fastaFile, feature="amplicon", attribute="coverage", BPPARAM=BPPARAM)
+setFeature(myPanel)<-"amplicon"
+setAttribute(myPanel)<-"coverage"
+scanBamP<-ScanBamParam()
+bamWhich(scanBamP)<-getBedFile(myPanel)
+setScanBamP(myPanel)<-scanBamP
+setPileupP(myPanel)<-PileupParam(max_depth=2000)
+#setFeaturePanel(myPanel)<-buildFeaturePanel(myPanel, BPPARAM)
+setGenePanel(myPanel)<-summarizePanel(myPanel, BPPARAM)
+g<-plotAttrExpl(myPanel,level="feature",join=TRUE, log=FALSE, color="blue")
+g
+plotMetaDataExpl(myPanel, "length", log=FALSE, join=FALSE, color="blueviolet")
+plotMetaDataExpl(myPanel, "gene", abs=FALSE)
+readFrequencies(myPanel)
+plotInOutFeatures(readFrequencies(myPanel))
+attributeThres<-c(0,1,50,200,500,1000,Inf)
+plot(myPanel, attributeThres=attributeThres, chrLabels =TRUE)
+g<-plotFeatPerform(myPanel, attributeThres, complete=TRUE, log=FALSE,featureLabs=TRUE, sepChr=TRUE, legend=TRUE)
+g
+biasExploration(myPanel, source="gc", dens=TRUE)
+summaryIntervals(myPanel, attributeThres)
+plotAttrPerform(myPanel, attributeThres)
+getLowCtsFeatures(myPanel, level="gene", threshold=50)
+for (gene in c("haplotarget")){
+        g<-plotGeneAttrPerFeat(myPanel, geneID=gene)
+        g<-g+theme(title=element_text(size=16), axis.title=element_text(size=16),legend.text=element_text(size=14))
+        g
+        g<-plotGeneAttrPerFeat(myPanel, geneID=gene, overlap = TRUE, level="both")
+        g
+}
+dev.off()
+
+```
+
+assembly
+
+```{r, eval=F}
+
+blat -t=dna -q=dna job-294-b8c29356-a68f-47b4-b5b1-4fdb27a828fc-file.fasta test.fa -out=psl test.psl
+000015F|arrow
+ 
+wget http://darlinglab.org/mauve/snapshots/2015/2015-02-13/linux-x64/mauve_linux_snapshot_2015-02-13.tar.gz
+
+
+
+```
+
+haplotyping
+
+```{r,eval=FALSE}
+
+git clone https://github.com/PacificBiosciences/targeted-phasing-consensus.git
+
+export PATH=/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/smrtcmds/bin/:/home/chenzhao/projects/haploseq/03_pacbio/ccs/targeted-phasing-consensus/:$PATH
+
+# in this example, we will be phasing the a region around the BIN1 locus in hg38
+# add script folder to path
+
+# ensure that samtools, bedtools, and arrow are in your path
+samtools --version  # should report >= 1.3.1
+bedtools --version  # should report >= 2.25
+arrow --version     # should report >= 2.2.0
+
+# create a working directory and change into it, e.g.
+for i in {1..4} ; do 
+rm -rf ./phased_data_s${i}_wholeMEIS1
+mkdir ./phased_data_s${i}_wholeMEIS1
+cd phased_data_s${i}_wholeMEIS1
+# define some variables to make the command easier to read (optional)
+CCSBAM=/home/chenzhao/projects/haploseq/03_pacbio/ccs/MEIS1_blasr_sortc_$i.bam     # ccs reads must be aligned to reference
+SUBREADSBAM=/home/chenzhao/projects/haploseq/03_pacbio/ccs/MEIS1_blasr_subreads_sortc_$i.bam  # subreads must be aligned to reference
+REFERENCE=/home/chenzhao/projects/haploseq/03_pacbio/ccs/chr2.fasta     # with indices
+ROINAME=MEIS1                            # this shouldn't contain any punctuation other than underscore or dash
+CHROM=chr2                              # define $CHROM, $START, and $END as if you would be passing them to samtools
+START=66628192
+END=66834231
+#START=66717005
+#END=66824366
+# run the phasing script, passing the necessary arguments
+targeted-phasing-consensus.sh $CCSBAM $SUBREADSBAM $ROINAME $CHROM $START $END $REFERENCE
+cd ..
+done
+
+66750564
+66785179
+66782431
+
+```
+
+# Assembly 
+
+```{r,eval=F}
+
+
+export PATH=/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/smrtcmds/bin/:/home/chenzhao/projects/haploseq/03_pacbio/ccs/targeted-phasing-consensus/:$PATH
+
+export GIT_SYM_CACHE_DIR=~/.git-sym-cache # to speed things up
+git clone git://github.com/PacificBiosciences/FALCON-integrate.git
+cd FALCON-integrate
+git checkout develop  # or whatever version you want
+git submodule update --init --recursive # Note: You must do this yourself! No longer via `make init`.
+make init
+source env.sh
+make config-edit-user
+make -j 12
+make test
+
+cd ..
+export FALCON_PREFIX=/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON-integrate/build
+mkdir -p ${FALCON_PREFIX}/bin
+cd FALCON-make
+bash config-standard.sh
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python get-pip.py
+
+https://nim-lang.org/install_unix.html
+
+
+###binary 
+
+mkdir FALCON
+cd FALCON
+curl -O https://downloads.pacbcloud.com/public/falcon/falcon-2018.03.12-04.00-py2.7-ucs4.tar.gz
+
+MUMMER_323='https://downloads.sourceforge.net/project/mummer/mummer/3.23/MUMmer3.23.tar.gz'
+wget ${MUMMER_323}
+
+
+export PATH=/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/smrtcmds/bin/:$PATH:/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON/bin:/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON/MUMmer3.23
+export LD_LIBRARY_PATH=/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON/lib:$LD_LIBRARY_PATH
+pwd
+
+
+export PATH=/opt/pacbio/smrtcmds/bin/:$PATH:/home/ing/chen.zhao/projects/haploseq/03_pacbio/FALCON/bin:/usr/bin/nucmer
+export LD_LIBRARY_PATH=/home/ing/chen.zhao/projects/haploseq/03_pacbio/FALCON/lib/:$LD_LIBRARY_PATH
+export PYTHONPATH=/home/ing/chen.zhao/projects/haploseq/03_pacbio/FALCON/lib/python2.7/site-packages/
+
+
+which samtools
+samtools --help
+pbalign --help
+variantCaller -h
+
+mv ~/projects/haploseq/03_pacbio/ccs/FALCON/bin/pip ~/projects/haploseq/03_pacbio/ccs/FALCON/bin/pip.bak
+mv ~/projects/haploseq/03_pacbio/ccs/FALCON/bin/cython ~/projects/haploseq/03_pacbio/ccs/FALCON/bin/cython.bak
+
+export PYTHONPATH=/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON/lib/python2.7/site-packages/
+  
+#
+  https://pb-falcon.readthedocs.io/en/latest/quick_start.html
+
+wget https://pb-falcon.readthedocs.io/en/latest/_downloads/fc_run_ecoli_local.cfg
+wget https://pb-falcon.readthedocs.io/en/latest/_downloads/fc_unzip.cfg
+
+mkdir meis1test
+
+samtools view -hb ../MEIS1_blasr_subreads_sortc_1.bam chr2:66714341-66804979 | bedtools bamtofastq -i - -fq /dev/stdout | awk '{if(NR%4==1){gsub("@",">",$0); print $0}if(NR%4==2){print $0}}' > meis1test/s1.fasta
+
+cp fc_run_ecoli_local.cfg fc_run_s1.cfg
+
+echo "/home/chenzhao/projects/haploseq/03_pacbio/ccs/falcon/meis1test/s1.fasta" > input.fofn
+
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/sge
+wget https://arc.liv.ac.uk/downloads/SGE/releases/8.1.9/sge-8.1.9.tar.gz
+
+curl -o /etc/yum.repos.d/loveshack-SGE-epel-7.repo https://copr.fedorainfracloud.org/coprs/loveshack/SGE/repo/epel-7/loveshack-SGE-epel-7.repo
+yum update
+yum install gridengine.x86_64
+
+
+yum install gridengine-*
+
+cd /opt/sge
+./install_qmaster
+sgeadmin
+
+6699
+6700
+wks001
+$SGE_CLUSTER_NAME: wks001
+
+export SGE_ROOT=/opt/sge
+export SGE_CELL=wks001
+export PATH=$PATH:/opt/sge/bin/lx-amd64
+export SGE_QMASTER_PORT=6699
+
+qconf -au root arusers
+qconf -au chenzhao arusers
+
+qconf -eq 
+
+./install_execd
+
+export SGE_ROOT=/opt/sge
+export SGE_CELL=wks001
+export PATH=$PATH:/opt/sge/bin/lx-amd64
+export SGE_QMASTER_PORT=6699
+
+qconf -rattr exechost complex_values slots=12,num_proc=12,h_vmem=60G,mem_total=60G,m_core=12,m_thread=12 wks001
+
+hl:arch=lx-amd64
+   hf:num_proc=12.000000
+   hl:mem_total=125.646G
+   hl:swap_total=27.620G
+   hl:virtual_total=153.266G
+   hl:m_topology=SCTTCTTCTTCTTCTTCTTCTTCTTSCTTCTTCTTCTTCTTCTTCTTCTT
+   hl:m_socket=2.000000
+   hl:m_core=16.000000
+   hl:m_thread=32.000000
+   hl:load_avg=1.300000
+   hl:load_short=1.260000
+   hl:load_medium=1.300000
+   hl:load_long=1.480000
+   hl:mem_free=49.996G
+   hl:swap_free=50.320M
+   hl:virtual_free=50.045G
+   hl:mem_used=75.651G
+   hl:swap_used=27.571G
+   hl:virtual_used=103.222G
+   hl:cpu=7.000000
+   hl:m_topology_inuse=SCTTCTTCTTCTTCTTCTTCTTCTTSCTTCTTCTTCTTCTTCTTCTTCTT
+   hl:np_load_avg=0.040625
+   hl:np_load_short=0.039375
+   hl:np_load_medium=0.040625
+   hl:np_load_long=0.046250
+   hc:slots=12.000000
+   hf:h_vmem=111.759G
+
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_install/
+wget https://pb-falcon.readthedocs.io/en/latest/_downloads/install_unzip_180312.sh
+bash install_unzip_180312.sh
+
+   
+```
+
+smrtlink 5
+
+```{r,eval=F}
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_5
+wget https://downloads.pacbcloud.com/public/falcon/falcon-2018.08.08-21.41-py2.7-ucs4-beta.tar.gz
+tar xzf falcon-2018.08.08-21.41-py2.7-ucs4-beta.tar.gz
+
+export PATH=/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_5/bin:/usr/bin:/bin:/home/softwares/bin/:$PATH
+export PYTHONPATH=/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_5/lib/python2.7/site-packages/:$PYTHONPATH
+export LD_LIBRARY_PATH=/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_5/lib/:${LD_LIBRARY_PATH}
+export PYTHONUSERBASE=/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_5/
+
+  
+export PATH=/home/ing/chen.zhao/projects/haploseq/03_pacbio/FALCON/bin:$PATH
+export PYTHONPATH=/home/ing/chen.zhao/projects/haploseq/03_pacbio/FALCON/lib/python2.7/site-packages/:$PYTHONPATH
+export LD_LIBRARY_PATH=/home/ing/chen.zhao/projects/haploseq/03_pacbio/FALCON/lib/:${LD_LIBRARY_PATH}
+export PYTHONUSERBASE=/home/ing/chen.zhao/projects/haploseq/03_pacbio/FALCON/
+
+  
+```
+
+## Unzip on HGAP4 output
+https://pb-falcon.readthedocs.io/en/latest/hgap4_adapt.html
+
+#START=66717005
+#END=66824366
+
+```{r,eval=F}
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/falcon_fromscm01
+rsync -avP chen.zhao@scm01:/opt/pacbio/userdata/jobs_root/000/000298/ ./
+rsync -avP chen.zhao@scm01:/opt/pacbio/userdata/jobs_root/000/000290/ ./
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/falcon
+
+source /home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_install/fc_env_180809/bin/activate
+
+job_dir=/opt/pacbio/userdata/jobs_root/000/000298/
+mkdir -p S2
+cd S2
+python -m falcon_kit.mains.hgap4_adapt --job-output-dir=${job_dir}
+
+job_dir=/home/softwares/local/smrtlink/userdata/jobs_root/000/000024
+mkdir -p S2
+cd S2
+python -m falcon_kit.mains.hgap4_adapt --job-output-dir=${job_dir}
+
+
+job_dir=/home/chenzhao/projects/haploseq/03_pacbio/ccs/falcon_fromscm01/01
+mkdir -p S1
+cd S1
+python -m falcon_kit.mains.hgap4_adapt --job-output-dir=${job_dir}
+
+
+#wget https://github.com/PacificBiosciences/FALCON_unzip/raw/master/examples/fc_unzip.cfg
+cp ../fc_unzip_template.cfg ./fc_unzip.cfg
+echo "${job_dir}/tasks/pbcoretools.tasks.gather_fasta-1/file.fasta" > input.fofn
+dataset summarize ${job_dir}/tasks/pbcoretools.tasks.filterdataset-0/filtered.subreadset.xml | grep -E "*.bam$" > input_bam.fofn
+
+echo "/home/softwares/local/smrtlink/userdata/jobs_root/000/000024/tasks/pbcoretools.tasks.bam2fasta-0/subreads.fasta" > input.fofn
+echo "/home/softwares/local/smrtlink/userdata/jobs_root/000/000005/tasks/barcoding.tasks.lima-0/lima_output.lbc9--lbc9.bam" > input_bam.fofn
+
+ls | xargs -n 1
+0-rawreads
+1-preads_ovl
+2-asm-falcon
+fc_unzip.cfg
+input_bam.fofn
+input.fofn
+
+fc_unzip.py fc_unzip.cfg
+fc_quiver.py fc_unzip.cfg
+
+
+
+samtools view -hb MEIS1_blasr_subreads_sortc_1.bam chr2:66717005-66824366 > MEIS1_S1_subreads.bam
+pbindex MEIS1_S1_subreads.bam
+cp subreads_samples.subreadset.xml subreads_MEIS1_S1.subreadset.xml
+
+```
+
+
+```{r,eval=F}
+
+## patch
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/phased_data/MEIS1
+
+PHASE=0
+
+{ echo -e "@HD\tVN:1.5\tSO:coordinate\tpb:3.0.1" ; echo -e "@SQ\tSN:chr2\tLN:243199373\tM5:854e985b2e19c122b9f67f6453965693" ; samtools view -H phase.1.subreads.bam | awk 'NR>2' | sed -e 's/\t66599999'//g'' ; samtools view phase.1.subreads.bam ; } | samtools view -Shb - > phase.1.subreads.patched.bam
+pbindex phase.1.subreads.patched.bam
+{ echo -e "@HD\tVN:1.5\tSO:coordinate\tpb:3.0.1" ; echo -e "@SQ\tSN:chr2\tLN:243199373\tM5:854e985b2e19c122b9f67f6453965693" ; samtools view -H phase.0.subreads.bam | awk 'NR>2' | sed -e 's/\t66599999'//g'' ; samtools view phase.0.subreads.bam ; } | samtools view -Shb - > phase.0.subreads.patched.bam
+pbindex phase.0.subreads.patched.bam
+   
+
+arrow -r ${REFERENCE} -o phase.${PHASE}.consensus.fasta -o phase.${PHASE}.vcf \
+                --referenceWindow ${CHROM}:${START}-${END} phase.${PHASE}.subreads.patched.bam
+
+
+```
+
+
+
+```{r,eval=F}
+
+[chenzhao@wks001 phased_data]$ targeted-phasing-consensus.sh $CCSBAM $SUBREADSBAM $ROINAME $CHROM $START $END $REFERENCE
+phasing MEIS1 on chr2 from 66600001 to 66890000
+--------------------------------------------------
+creating directory MEIS1 to store output
+--------------------------------------------------
+subsetting /home/chenzhao/projects/haploseq/03_pacbio/ccs/MEIS1_blasr_sortc_1.bam
+--------------------------------------------------
+original subset.bam has 89X mean coverage
+phasing subset.bam around ROI
+--------------------------------------------------
+generating a list of subreads corresponding to phase 0
+--------------------------------------------------
+filtering reads corresponding to phase 0
+--------------------------------------------------
+calling variants for phase 0
+--------------------------------------------------
+>|> 20180804 03:07:55.401 -|- INFO       -|- Polish -|- 0x7f72c5cdc740|| -|- negative inf in mutation testing: 'm54141_180729_190621/5702154/19891_19893'
+>|> 20180804 03:07:55.401 -|- INFO       -|- Polish -|- 0x7f72c5cdc740|| -|- negative inf in mutation testing: 'm54141_180729_190621/31327198/36658_36660'
+>|> 20180804 03:07:55.401 -|- INFO       -|- Polish -|- 0x7f72c5cdc740|| -|- negative inf in mutation testing: 'm54141_180729_190621/5702154/5534_5536'
+>|> 20180804 03:08:35.327 -|- INFO       -|- Polish -|- 0x7f72c5cdc740|| -|- negative inf in mutation testing: 'm54141_180729_190621/53149934/28699_28701'
+>|> 20180804 03:08:36.082 -|- INFO       -|- Polish -|- 0x7f72c5cdc740|| -|- negative inf in mutation testing: 'm54141_180729_190621/53149934/39428_39430'
+Process ArrowWorkerProcess-1:
+Traceback (most recent call last):
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+    self.run()
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/GenomicConsensus/Worker.py", line 96, in run
+    self._run()
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/GenomicConsensus/Worker.py", line 77, in _run
+    result = self.onChunk(datum)
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/GenomicConsensus/arrow/arrow.py", line 217, in onChunk
+    refContig, options.coverage, self.arrowConfig)
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/GenomicConsensus/arrow/arrow.py", line 74, in consensusAndVariantsForWindow
+    barcode=options.barcode)
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/GenomicConsensus/utils.py", line 187, in readsInWindow
+    return depthCap(sorted_alnHits[win_sort])
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/GenomicConsensus/utils.py", line 131, in depthCap
+    return alnFile[list(itertools.islice(iter, 0, depthLimit))]
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/pbcore/io/dataset/DataSetIO.py", line 1969, in __getitem__
+    indexTuples]
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/pbcore/io/align/BamIO.py", line 429, in __getitem__
+    return self.atRowNumber(rowNumbers)
+  File "/home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/private/thirdparty/python/python_2.7.9/site-packages/pbcore/io/align/BamIO.py", line 407, in atRowNumber
+    return BamAlignment(self, next(self.peer), rn)
+  File "pysam/calignmentfile.pyx", line 1645, in pysam.calignmentfile.AlignmentFile.__next__ (pysam/calignmentfile.c:18032)
+StopIteration
+Child process exited with exitcode=1.  Aborting.
+[ERROR] Child process exited with exitcode=1.  Aborting.
+
+
+```
+
+FACLON
+
+```{r,eval=F}
+
+
+# step 1:
+git clone https://github.com/nim-lang/Nim.git
+cd Nim
+
+# step 2 (posix) clones `csources.git`, bootstraps Nim compiler and compiles tools
+sh build_all.sh
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_git/FALCON-integrate/FALCON-integrate/
+rm -rf nim-falcon
+git clone --recursive https://github.com/bio-nim/nim-falcon.git
+cd .. 
+make all
+
+git clone https://github.com/jangko/msgpack4nim.git
+git clone https://github.com/bluenote10/nim-heap.git
+
+http://www.chenlianfu.com/?p=2465
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_git/
+export GIT_SYM_CACHE_DIR=~/.git-sym-cache # to speed things up
+git clone git://github.com/PacificBiosciences/FALCON-integrate.git
+cd FALCON-integrate
+rm -rf nim-falcon
+git clone --recursive https://github.com/bio-nim/nim-falcon.git
+cd .. 
+git checkout master  # or whatever version you want
+git submodule update --init # Note: You must do this yourself! No longer via `make init`.
+make init
+source env.sh
+make config-edit-user
+make all
+make test  # to run a simple one
+
+git clone --recursive https://github.com/PacificBiosciences/FALCON_unzip.git
+source env.sh
+cd FALCON_unzip
+python setup.py build
+pip install ./ --user
+
+
+
+```
+
+
+```{r,eval=F}
+
+cd /home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON_run
+cp ../FALCON_git/FALCON-integrate/FALCON-integrate/FALCON-examples/run/greg200k-sv2/* ./ -rf
+
+
+echo "/home/softwares/local/smrtlink/userdata/jobs_root/000/000024/tasks/pbcoretools.tasks.bam2fasta-0/subreads.fasta" > input.fofn
+echo "/home/softwares/local/smrtlink/userdata/jobs_root/000/000005/tasks/barcoding.tasks.lima-0/lima_output.lbc9--lbc9.bam" > input_bam.fofn
+
+fc_run.cfg
+
+[General]
+
+pwatcher_type = fs_based
+job_type = sge
+
+kill = qdel -j ${JOB_NAME}
+
+
+input_fofn = input.fofn
+input_type = raw
+
+length_cutoff = 1000
+length_cutoff_pr = 3000
+pa_DBsplit_option = -x500 -s50
+pa_HPCdaligner_option = -v -B4 -k20 -T4 -M32 -e.70 -l1000 -s1000
+
+falcon_sense_option = --output_multi --min_idt 0.70 --min_cov 4 --max_n_read 200 --n_core 6
+da_concurrent_jobs = 2
+la_concurrent_jobs = 2
+cns_concurrent_jobs = 2
+
+sge_option_da = -pe smp 4 -q all.q
+sge_option_la = -pe smp 4 -q all.q
+sge_option_fc = -pe smp 4 -q all.q
+sge_option_cns = -pe smp 4 -q all.q
+
+ovlp_DBsplit_option = -x500 -s50
+ovlp_HPCdaligner_option = -v -B4 -k20 -h60 -T6 -t32 -e.96 -l500 -s1000
+
+pda_concurrent_jobs = 2
+pla_concurrent_jobs = 2
+sge_option_pda = -pe smp 4 -q all.q
+sge_option_pla = -pe smp 4 -q all.q
+
+overlap_filtering_setting = --max_diff 50 --max_cov 75 --min_cov 5 --bestn 10
+
+
+#####
+
+fc_unzip.cfg
+
+
+[General]
+
+pwatcher_type = fs_based
+job_type = sge
+
+kill = qdel -j ${JOB_NAME}
+
+
+[Unzip]
+input_fofn= input.fofn
+input_bam_fofn= input_bam.fofn
+
+smrt_bin = /home/softwares/local/smrtlink/install/smrtlink-release_5.1.0.26412/bundles/smrttools/install/smrttools-release_5.1.0.26366/smrtcmds/bin/blasr
+
+sge_phasing= -pe smp 4 -q all.q
+sge_quiver= -pe smp 4 -q all.q
+sge_track_reads= -pe smp 4 -q all.q
+sge_blasr_aln=  -pe smp 4 -q all.q
+sge_blasr=  -pe smp 4 -q all.q
+sge_hasm=  -pe smp 4 -q all.q
+unzip_blasr_concurrent_jobs = 2
+unzip_phasing_concurrent_jobs = 2
+quiver_concurrent_jobs = 2
+
+PATHBAK=$PATH
+export PATH=/home/softwares/src/samtools-1.4.1/:/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON/bin:$PATH:/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON/MUMmer3.23/
+export PYTHONPATH=/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON/lib/python2.7/site-packages
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/chenzhao/projects/haploseq/03_pacbio/ccs/FALCON/lib
+
+../FALCON_binary/bin/fc_unzip.py fc_unzip.cfg
+../FALCON_binary/bin/fc_quiver.py fc_unzip.cfg
+  
+
+## tmp error blasr over threads
+../FALCON_binary/bin/fc_unzip.py fc_unzip.cfg
+
+../FALCON_binary/bin/fc_unzip.py fc_unzip.cfg &>tmp.log
+cat tmp.log | grep '!qsub ' | sed -e 's/\[INFO\]!//g' | bash -
+
+../FALCON_binary/bin/fc_quiver.py fc_unzip.cfg
+
+../FALCON_binary/bin/fc_quiver.py fc_unzip.cfg &>tmp.log
+cat tmp.log | grep '!qsub ' | sed -e 's/\[INFO\]!//g' | bash -
+
+
+###  finished 
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
