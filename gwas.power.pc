@@ -1,0 +1,20 @@
+http://genocanyon.med.yale.edu/Software_Zhaocenter/GWASPC/example.html
+
+library(GWAS.PC)
+
+emat.case<-matrix(c(1,0,0,0,1,0,0,0.001,0.999),nrow=3,byrow=T)
+
+cases <- c(100,200,300,326, 399,453, 486,500, 1074, 1296, 1500, 3000, 4034,5000)
+control <- c(3554+4932)
+rs=c(1.2,1.5,2,2.5,3)
+as=c(1e-6,5e-8)
+res <-numeric()
+for(case in cases){
+res1 <- numeric()
+for(a in as){
+for(r in rs){
+res1 <- c(res1, Power.single(alpha=a,r=r,pA=0.05,ncase=case,nctrl=control,pD=0.009, emat1=emat.case,type="ndiff",moi="m"))
+}
+}
+res <- cbind(res,res1)
+}
