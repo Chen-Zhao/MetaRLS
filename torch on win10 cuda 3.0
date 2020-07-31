@@ -1,0 +1,60 @@
+### open anaconda prompt (not powershell)
+
+conda remove torch torchvision
+conda clean -a
+
+cd D:\processing_000\XXX\kevins_poc
+D:
+
+conda install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi
+conda install git
+git clone --recursive https://github.com/pytorch/pytorch
+
+cd pytorch
+
+git checkout -b my160  v1.6.0 
+
+#git checkout -b my131  v1.3.1
+
+type .\version.txt
+
+cmake -version
+
+## install VC 2017 installer: vc++ tools 15.9 for 14.16
+## install VC 2017 CMAKE support
+
+#set CMAKE_GENERATOR=Ninja 
+#set USE_NINJA=0
+set USE_NINJA=1
+set CMAKE_GENERATOR=Ninja
+set TORCH_PACKAGE_NAME=pytorch
+set CMAKE_GENERATOR_TOOLSET_VERSION=14.16
+set DISTUTILS_USE_SDK=1
+
+SET
+
+for /f "usebackq tokens=*" %i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -version [15^,16^) -products * -latest -property installationPath`) do call "%i\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=%CMAKE_GENERATOR_TOOLSET_VERSION%
+
+#set PYTORCH_BUILD_VERSION=1.3.1
+
+
+set CUDAHOSTCXX=%VCToolsInstallDir%\bin\Hostx86\x64\cl.exe
+set PYTORCH_BUILD_VERSION=1.6.0
+set PYTORCH_BUILD_NUMBER=003
+
+# download nsight-visual-studio-edition-2019-1
+
+
+python setup.py clean
+
+mklink /D "C:\Program Files\NVIDIA Corporation\NvToolsExt\include" D:\ProgramFiles\CUDA\CUDAv101\include
+mklink /D "C:/Program Files/NVIDIA Corporation/NvToolsExt/lib/x64/" "D:\ProgramFiles\CUDA\CUDAv101\lib\x64"
+
+
+# D:\ProgramFiles\CUDA\CUDAv101\include
+
+python setup.py install
+
+cuda install cudatoolkit=10.1
+
+conda install torchvision -c pytorch --no-deps
