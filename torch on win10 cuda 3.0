@@ -55,6 +55,6 @@ mklink /D "C:/Program Files/NVIDIA Corporation/NvToolsExt/lib/x64/" "D:\ProgramF
 
 python setup.py install
 
-cuda install cudatoolkit=10.1
+conda install cudatoolkit=10.1
 
 conda install torchvision -c pytorch --no-deps
