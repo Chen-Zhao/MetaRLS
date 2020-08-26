@@ -1,0 +1,1 @@
+conda install pytorch=1.6.0=py3.7_cuda101_cudnn7_0 torchvision=0.7.0=py37_cu101 cudatoolkit=10.1 -c pytorch
